@@ -6,11 +6,11 @@ test.before(async()=>{await new Promise(r=>server.listen(0,'127.0.0.1',r));origi
 test.after(async()=>{await new Promise(r=>server.close(r));});
 async function req(uri){return fetch(origin+uri);}
 test('pagina inicial e paginas SEO regionais respondem',async()=>{
- const a=await req('/');assert.equal(a.status,200);assert.match(await a.text(),/Todo o Brasil em um mapa/);
+ const a=await req('/');assert.equal(a.status,200);assert.match(await a.text(),/A eleição,/);
  const b=await req('/eleicoes-2026/parana');assert.equal(b.status,200);assert.match(await b.text(),/Eleições 2026 em Paraná/);
 });
 test('rotas de saúde e sitemap funcionam',async()=>{
- assert.equal((await (await req('/api/health')).json()).version,'6.6.0');
+ assert.equal((await (await req('/api/health')).json()).version,'7.0.0');
  const r=await req('/sitemap.xml');assert.equal(r.status,200);assert.match(await r.text(),/eleicoes-2026\/acre/);
 });
 test('API rejeita parametros indevidos',async()=>{
@@ -31,7 +31,7 @@ test('busca curta nao consome catalogo do TSE',async()=>{const response=await re
 test('mapa estadual tem exploração progressiva e campos de acessibilidade',async()=>{
  const html=await (await req('/')).text();
  for(const id of ['id="cityMapPanel"','id="explorerSearch"','id="explorerSuggestions"','id="explorerSeeResult"','id="explorerZoomIn"','id="cityMapClose"'])assert.ok(html.includes(id),id);
- assert.ok(html.indexOf('id="cityMapPanel"')<html.indexOf('id="resultados"'));
+ assert.ok(html.indexOf('id="resultados"')<html.indexOf('id="mapa"'));
 });
 
 test('API de governador exige UF e cartões acessíveis constam no HTML',async()=>{

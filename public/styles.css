@@ -207,3 +207,43 @@ button:focus-visible,input:focus-visible,a:focus-visible,[tabindex="0"]:focus-vi
 #nationalSummary{scroll-margin-top:110px}
 #explorerStateVotes[hidden]{display:none}
 @media(max-width:800px){.explorer-state-votes{padding:17px}.geo-state-label{font-size:14px}.national-values>div>strong{font-size:clamp(1.25rem,5vw,1.6rem)}}
+
+
+/* v7.0 · Resultado primeiro, mapa como aprofundamento, retratos verificados */
+:root{--radius:18px}
+.hero{padding:34px 0 22px;grid-template-columns:minmax(0,1.28fr) minmax(270px,.72fr);gap:36px}
+.hero h1{font-size:clamp(35px,4vw,54px);margin:12px 0 12px;max-width:730px}
+.hero p{font-size:16px;line-height:1.5;margin-bottom:18px}
+.city-hero-search{margin-top:18px}
+.hero-actions{margin-top:15px}
+.today-card{padding:20px}
+.today-middle{margin:18px 0}
+.section{padding-bottom:44px}
+.section-head{margin-bottom:17px}
+.results-section{scroll-margin-top:110px}
+.results-panel{padding:22px}
+.quick-overview{display:flex;align-items:center;gap:14px;padding:15px 18px;border-radius:14px;border:1px solid var(--line);background:var(--soft);margin-bottom:16px}
+.quick-overview-icon{font-size:25px;color:var(--blue)}
+.quick-overview strong,.quick-overview span{display:block}
+.quick-overview strong{font-size:18px;line-height:1.25}
+.quick-overview span{font-size:13px;color:var(--muted);margin-top:3px}
+.quick-overview-link{font-size:13px;font-weight:800;color:var(--blue);margin-left:auto;white-space:nowrap}
+.candidate-section-intro{display:flex;justify-content:space-between;align-items:baseline;gap:14px;margin-top:20px}
+.candidate-section-intro strong{font-size:17px}
+.candidate-section-intro span{font-size:12px;color:var(--muted)}
+.candidate-list{gap:10px;margin-top:12px}
+.candidate{grid-template-columns:34px 68px minmax(0,1fr) minmax(120px,.38fr);align-items:center;column-gap:14px;padding:15px 18px}
+.candidate-rank{font-size:12px;font-weight:850;color:var(--muted)}
+.candidate-portrait,.candidate-photo{display:grid;place-items:center;width:64px;height:72px;border-radius:11px;object-fit:cover;background:var(--blue-soft);color:var(--blue);font-size:19px;font-weight:850;border:1px solid var(--line)}
+.candidate-name{font-size:18px;line-height:1.25}
+.candidate-details{min-width:0}
+.candidate-votes strong{font-size:clamp(18px,2.3vw,29px)}
+.candidate-bar{grid-column:3 / -1;margin-top:-4px;height:7px}
+.state-identity{display:flex;align-items:center;gap:10px;min-width:0}
+.state-text{min-width:0}
+.state-flag{display:block;object-fit:cover;width:37px;height:25px;border:1px solid var(--line);border-radius:3px;flex:none}
+.state-flag-placeholder{min-width:36px;height:27px;display:grid;place-items:center;border-radius:6px;background:var(--blue-soft);color:var(--blue);font-size:12px;font-weight:850;flex:none}
+.selected-region-icon{display:flex;align-items:center;justify-content:center;width:42px;height:36px;flex:none}
+.selected-region-icon .state-flag{width:42px;height:28px}
+@media(max-width:900px){.hero{grid-template-columns:1fr;gap:14px}.today-card{max-width:none;justify-self:stretch}.candidate-section-intro{display:block}.candidate-section-intro span{display:block;margin-top:2px}}
+@media(max-width:700px){.hero{padding:19px 0 12px}.hero h1{font-size:clamp(30px,7.8vw,41px)}.hero p{font-size:15px}.topbar{display:none}.navline{min-height:65px}.brand b{font-size:23px}.mainnav{display:none}.today-middle{margin:8px 0}.today-symbol{width:43px;height:43px;font-size:25px}.section{padding-bottom:34px}.section-head h2{font-size:29px}.quick-overview{padding:13px;flex-wrap:wrap}.quick-overview-link{margin-left:0;width:100%;font-size:14px;min-height:30px}.candidate{grid-template-columns:26px 55px minmax(0,1fr);gap:10px;padding:13px}.candidate-portrait,.candidate-photo{width:54px;height:63px;font-size:16px}.candidate-name{font-size:16px}.candidate-meta{font-size:12px}.candidate-votes{grid-column:3;justify-self:start;display:flex;gap:10px;align-items:baseline}.candidate-votes strong{font-size:22px}.candidate-votes span{font-size:12px}.candidate-bar{grid-column:2 / -1;margin-top:0}.results-panel{padding:13px}.candidate-section-intro{margin-top:13px}.status-banner{margin:12px 0}.results-heading{align-items:flex-start}.selected-region-icon{display:none}}

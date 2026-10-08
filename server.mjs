@@ -9,7 +9,7 @@ import {brasilDate,secondRoundUnlocked,defaultRound,SECOND_ROUND_DATE} from './s
 const PORT=Number(process.env.PORT||3000), HOST=process.env.HOST||'0.0.0.0';
 const root=path.join(path.dirname(fileURLToPath(import.meta.url)),'public');
 const template=await readFile(path.join(root,'index.html'),'utf8');
-const types={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.json':'application/json; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.txt':'text/plain; charset=utf-8'};
+const types={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.json':'application/json; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.webp':'image/webp','.txt':'text/plain; charset=utf-8'};
 const IBGE_CODES={ac:12,al:27,ap:16,am:13,ba:29,ce:23,df:53,es:32,go:52,ma:21,mt:51,ms:50,mg:31,pa:15,pb:25,pr:41,pe:26,pi:22,rj:33,rn:24,rs:43,ro:11,rr:14,sc:42,sp:35,se:28,to:17};
 const geometryCache=new Map();
 function security(res){
@@ -17,7 +17,7 @@ function security(res){
   res.setHeader('Referrer-Policy','strict-origin-when-cross-origin');
   res.setHeader('X-Frame-Options','DENY');
   res.setHeader('Permissions-Policy','camera=(), microphone=(), geolocation=()');
-  res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'");
+  res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://raw.githubusercontent.com; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'");
 }
 function send(res,status,body,mime,head=false,cache='no-store'){
   res.writeHead(status,{'Content-Type':mime,'Cache-Control':cache});res.end(head?undefined:body);
@@ -65,7 +65,7 @@ async function getGeometry(kind,uf=''){
 export const server=http.createServer(async(req,res)=>{
   security(res);const head=req.method==='HEAD';if(req.method!=='GET'&&!head)return json(res,405,{error:'Metodo nao permitido'});
   let url;try{url=new URL(req.url,`http://${req.headers.host||'localhost'}`);}catch{return json(res,400,{error:'URL invalida'},head);}
-  if(url.pathname==='/api/health')return json(res,200,{ok:true,service:'urnaflash',version:'6.6.0'},head);
+  if(url.pathname==='/api/health')return json(res,200,{ok:true,service:'urnaflash',version:'7.0.0'},head);
   if(url.pathname==='/api/status'){
     try{const c=await getElectionConfig();return json(res,200,{source:'TSE',rounds:{'1':!!electionFromConfig(c,1),'2':!!electionFromConfig(c,2)},checkedAt:new Date().toISOString()},head);}catch{return json(res,503,{error:'Fonte TSE indisponivel'},head);}
   }
@@ -129,4 +129,4 @@ export const server=http.createServer(async(req,res)=>{
     return send(res,200,bytes,types[path.extname(file)]||'application/octet-stream',head,'public,max-age=300');}
   catch{return json(res,404,{error:'Arquivo nao encontrado'},head);}
 });
-if(process.env.NODE_ENV!=='test')server.listen(PORT,HOST,()=>console.log(`UrnaFlash v6.4 em ${HOST}:${PORT}`));
+if(process.env.NODE_ENV!=='test')server.listen(PORT,HOST,()=>console.log(`UrnaFlash v7.0 em ${HOST}:${PORT}`));

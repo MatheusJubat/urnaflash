@@ -90,7 +90,7 @@ export function normalizeTseResult(raw,{round,uf,office,municipality=''}){
         for(const c of party.cand||[]){
           if(!c.n && !c.nm && !c.nmu)continue;
           candidates.push({
-            number:safeText(c.n),name:safeText(c.nmu||c.nm),
+            number:safeText(c.n),sqcand:/^\d{8,18}$/.test(String(c.sqcand||''))?String(c.sqcand):null,name:safeText(c.nmu||c.nm),
             party:safeText(party.sg||party.sgp||group.sg||''),
             votes:toNum(c.vap),percentage:toNum(c.pvap),
             status:safeText(c.st),elected:c.e==='s' || c.e==='S',

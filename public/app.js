@@ -4,6 +4,7 @@ const STATES=[['ac','Acre'],['al','Alagoas'],['ap','Amapá'],['am','Amazonas'],[
 const STATE_NAMES=Object.fromEntries([['br','Brasil'],...STATES]);
 const STATE_CAPITALS={ac:'Rio Branco',al:'Maceió',ap:'Macapá',am:'Manaus',ba:'Salvador',ce:'Fortaleza',df:'Brasília',es:'Vitória',go:'Goiânia',ma:'São Luís',mt:'Cuiabá',ms:'Campo Grande',mg:'Belo Horizonte',pa:'Belém',pb:'João Pessoa',pr:'Curitiba',pe:'Recife',pi:'Teresina',rj:'Rio de Janeiro',rn:'Natal',rs:'Porto Alegre',ro:'Porto Velho',rr:'Boa Vista',sc:'Florianópolis',sp:'São Paulo',se:'Aracaju',to:'Palmas'};
 const SLUGS={ac:'acre',al:'alagoas',ap:'amapa',am:'amazonas',ba:'bahia',ce:'ceara',df:'distrito-federal',es:'espirito-santo',go:'goias',ma:'maranhao',mt:'mato-grosso',ms:'mato-grosso-do-sul',mg:'minas-gerais',pa:'para',pb:'paraiba',pr:'parana',pe:'pernambuco',pi:'piaui',rj:'rio-de-janeiro',rn:'rio-grande-do-norte',rs:'rio-grande-do-sul',ro:'rondonia',rr:'roraima',sc:'santa-catarina',sp:'sao-paulo',se:'sergipe',to:'tocantins'};
+const FLAG_URL_BASE='https://raw.githubusercontent.com/akagabi/bandeira-dos-estados-do-brasil/master/';
 const IBGE_CODES={ac:'12',al:'27',ap:'16',am:'13',ba:'29',ce:'23',df:'53',es:'32',go:'52',ma:'21',mt:'51',ms:'50',mg:'31',pa:'15',pb:'25',pr:'41',pe:'26',pi:'22',rj:'33',rn:'24',rs:'43',ro:'11',rr:'14',sc:'42',sp:'35',se:'28',to:'17'};
 const IBGE_TO_UF=Object.fromEntries(Object.entries(IBGE_CODES).map(([uf,num])=>[num,uf]));
 const OFFICES={presidente:'Presidente',governador:'Governador',senador:'Senador','deputado-federal':'Deputado federal','deputado-estadual':'Deputado estadual','deputado-distrital':'Deputado distrital'};
@@ -21,6 +22,10 @@ const readStore=(key,defaultValue)=>{try{return localStorage.getItem(key)||defau
 const writeStore=(key,val)=>{try{localStorage.setItem(key,val);}catch{}};
 function setTheme(theme){const isDark=theme==='dark';document.documentElement.dataset.theme=isDark?'dark':'light';$('#themeToggle').setAttribute('aria-pressed',String(isDark));$('#themeToggle').setAttribute('aria-label',isDark?'Ativar modo claro':'Ativar modo escuro');$('#themeIcon').textContent=isDark?'☀':'☾';$('#themeLabel').textContent=isDark?'Modo claro':'Modo escuro';writeStore('urnaflash-theme',theme);}
 function toast(message){const node=$('#toast');node.textContent=message;node.hidden=false;clearTimeout(toast.timer);toast.timer=setTimeout(()=>node.hidden=true,4000);}
+const candidatePhotos = new Map();
+async function loadPhotoManifest(){try{const response=await fetch('/candidate-photos.json',{cache:'force-cache'});if(!response.ok)return;const data=await response.json();for(const [id,url] of Object.entries(data)){if(/^\d{8,18}$/.test(id)&&/^\/candidate-photos\/[a-zA-Z0-9_-]+\.(?:jpe?g|png|webp)$/.test(url))candidatePhotos.set(id,url);}}catch{}}
+function stateFlag(code){const flag=el('span','state-flag-placeholder',code==='br'?'🇧🇷':String(code||'').toUpperCase());if(!STATE_NAMES[code]||code==='br')return flag;const img=el('img','state-flag');img.src=FLAG_URL_BASE+code+'.svg';img.alt='Bandeira de '+STATE_NAMES[code];img.width=38;img.height=26;img.loading='lazy';img.decoding='async';img.addEventListener('error',()=>img.replaceWith(flag),{once:true});return img;}
+function regionHeading(target,code,text){const container=$(target);container.replaceChildren(stateFlag(code),el('span','',text));}
 const email=()=>['contato','urnaflash'].join('')+'@'+'gmail.com';
 const pathFor=code=>code==='br'?'/':`/eleicoes-2026/${SLUGS[code]}`;
 function applyURL(){const params=new URLSearchParams();if(manualTurn||round===2)params.set('turno',String(round));if(office!=='presidente')params.set('cargo',office);if(municipality)params.set('municipio',municipality);const query=params.toString();history.replaceState({},'',pathFor(uf)+(query?'?'+query:''));}
@@ -59,9 +64,11 @@ function updateHeadings(){populateOffices();
   document.querySelectorAll('#turnButtons [data-round]').forEach(btn=>{const active=Number(btn.dataset.round)===round;btn.classList.toggle('active',active);btn.setAttribute('aria-pressed',String(active));});
   $('#mapRoundLabel').textContent=round+'º turno';
   const title=cityName&&municipality?`${cityName} (${uf.toUpperCase()})`:STATE_NAMES[uf]||'Brasil';
+  const overviewLabel=$('#quickOverviewLabel'),overviewTip=$('#quickOverviewTip');if(overviewLabel)overviewLabel.textContent=`${title} · ${OFFICES[office]}`;if(overviewTip)overviewTip.textContent=municipality?'Votos da cidade selecionada':uf==='br'?'Resultado do Brasil inteiro':'Votos do estado selecionado';
   $('#officeCaption').textContent=OFFICES[office].toUpperCase();$('#electionHeading').textContent=`${round}º turno · ${title}`;
   $('#resultsSubtitle').textContent=round===2&&!electionDayStarted?'Prévia de navegação · sem apuração oficial até 25 de outubro':municipality?'Votos recebidos neste município conforme o TSE':office==='senador'?'Duas vagas de senador em disputa por estado':'Resultados oficiais da eleição selecionada';
   $('#selectedPlace').textContent=municipality?title:uf==='br'?'Brasil inteiro':STATE_NAMES[uf];
+  const regionMark=$('#activeRegionFlag');if(regionMark)regionMark.replaceChildren(stateFlag(uf));
   $('#selectedPlaceHint').textContent=municipality?'Resultado municipal · dados do TSE':uf==='br'?'Busque sua cidade acima ou escolha um estado no mapa.':'Resultado estadual · clique no mapa para trocar.';
   $('#changePlaceBtn').textContent=uf==='br'&&office!=='presidente'?'Escolher estado no mapa':'Buscar outra cidade';
   $('#heroRound').textContent=round+'º turno';$('#heroTitle').textContent=round===1?'Resultados do 1º turno':electionDayStarted?'Apuração do 2º turno':'Prévia do 2º turno';
@@ -106,7 +113,10 @@ function resetToBrazil({focus='map',scroll=false}={}){
 function candidateElement(candidate,i){
   const node=el('div','candidate');node.dataset.identity=candidate.number;
   node.append(el('span','candidate-rank',String(i+1).padStart(2,'0')));
-  const main=el('div');main.append(el('div','candidate-name',candidate.name||'Nome não informado'),el('div','candidate-meta',`${candidate.party||'Partido não identificado'} · Nº ${candidate.number||'—'}`));
+  const portrait=el('span','candidate-portrait');portrait.setAttribute('aria-hidden','true');portrait.textContent=String(candidate.name||'?').trim().split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase();
+  const photo=candidatePhotos.get(String(candidate.sqcand||''));
+  if(photo){const img=el('img','candidate-photo');img.src=photo;img.loading=i>2?'lazy':'eager';img.decoding='async';img.alt='';img.addEventListener('error',()=>img.replaceWith(portrait),{once:true});node.append(img);}else node.append(portrait);
+  const main=el('div','candidate-details');main.append(el('div','candidate-name',candidate.name||'Nome não informado'),el('div','candidate-meta',`${candidate.party||'Partido não identificado'} · Nº ${candidate.number||'—'}`));
   if(candidate.elected&&latestResult?.finished)main.append(el('span','tiny-badge','Eleito, conforme o TSE'));
   node.append(main);
   const stats=el('div','candidate-votes');stats.append(el('strong','',fmtPct(candidate.percentage)),el('span','',`${fmtVotes(candidate.votes)} votos`));node.append(stats);
@@ -193,7 +203,7 @@ function drawMap(){if(geoFeatures)drawGeoMap();else drawTiles();}
 function renderStateList(){const root=$('#statesList'),q=$('#stateSearch').value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();root.replaceChildren();
   for(const [code,name] of STATES){if(!name.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().includes(q)&&!code.includes(q))continue;
     const data=statusByUF(code),btn=el('button','state-row');btn.type='button';btn.setAttribute('aria-label',tooltipText(code)+(uf===code?' Selecionado. Clique novamente para voltar ao Brasil.':''));btn.setAttribute('aria-pressed',String(uf===code));btn.classList.toggle('is-selected',uf===code);
-    const left=el('div');left.append(el('b','',name),el('div','state-sub',code.toUpperCase()));btn.append(left);
+    const left=el('div','state-identity');left.append(stateFlag(code));const labels=el('div','state-text');labels.append(el('b','',name),el('div','state-sub',code.toUpperCase()));left.append(labels);btn.append(left);
     const right=el('div','state-value');if(data?.leader){
       right.append(el('span','value-main',`${data.leader.name} · ${fmtPct(data.leader.percentage)} dos votos`));
       right.append(el('small','',`${fmtPct(data.progress)} das seções · ${data.finished?'concluído':fmtVotes(data.sectionsRemaining)+' restantes'}`));
@@ -528,6 +538,7 @@ function init(){setTheme(readStore('urnaflash-theme','light'));$('#themeToggle')
     }
   });
 
+  loadPhotoManifest().then(()=>{if(latestResult?.candidates?.length)paintCandidates();});
   setupCitySearch();setupSharing();updateHeadings();drawTiles();renderStateList();renderScopeSummary();refreshResults();refreshMap();refreshGovernorSituation();loadGeometry();checkAutomaticRound();cleanupOldSW();
   refreshTimer=setInterval(()=>{if(document.hidden)return;checkAutomaticRound();refreshResults();refreshMap();if(uf!=='br')refreshGovernorSituation();},60_000);
   document.addEventListener('visibilitychange',()=>{if(!document.hidden){refreshResults();refreshMap();checkAutomaticRound();}});
