@@ -171,3 +171,33 @@ button:disabled{opacity:.42;cursor:not-allowed}
 .capital-shortcut small{font-size:11px;color:var(--muted);font-weight:800}
 .capital-shortcut:hover,.capital-shortcut:focus-visible{background:var(--blue-soft);border-color:var(--blue);color:var(--blue)}
 @media(max-width:700px){.capital-shortcuts-list{gap:7px}.capital-shortcut{font-size:14px;min-height:46px;padding:9px 13px}}
+
+/* UrnaFlash 6.4: seleção da cidade separada do histórico de votos consultados */
+.state-explorer .municipality-map .geo-city{stroke:var(--paper);stroke-width:.7;stroke-linejoin:round;cursor:pointer;transition:filter .1s}
+.state-explorer .municipality-map .geo-city:hover,.state-explorer .municipality-map .geo-city:focus-visible{stroke:var(--ink);stroke-width:1.8;outline:none;filter:brightness(.96)}
+.state-explorer .municipality-map .geo-city.is-selected,
+.state-explorer .municipality-map .geo-city.is-selected:hover,
+.state-explorer .municipality-map .geo-city.is-selected:focus-visible{stroke:var(--blue);stroke-width:3.5;filter:drop-shadow(0 0 2px rgba(14,96,188,.45));stroke-linejoin:round}
+.explorer-color-controls{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;padding:13px 0 5px}
+.explorer-key{display:flex;gap:14px;align-items:center;flex-wrap:wrap;font-size:13px;font-weight:700;color:var(--muted)}
+.explorer-key i{width:16px;height:16px;display:inline-block;vertical-align:middle;margin-right:4px;border-radius:4px}
+.explorer-key-selected{background:var(--blue-soft);border:3px solid var(--blue)}
+.explorer-key-neutral{background:var(--gray);border:1px solid var(--line)}
+#explorerShowCompared{min-height:46px;font-size:13px;text-align:center;white-space:normal}
+#explorerShowCompared[aria-pressed="true"]{border-color:var(--blue);background:var(--blue-soft);color:var(--ink)}
+@media(max-width:800px){#explorerShowCompared{width:100%;min-height:52px}.explorer-key{width:100%;justify-content:space-between}}
+@media(prefers-reduced-motion:reduce){.state-explorer .municipality-map .geo-city{transition:none}}
+
+/* v6.5: voltar ao Brasil, controles confortáveis no celular e foco visível */
+.sr-only{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.clear-selection-link{display:inline-flex;align-items:center;justify-content:center;min-height:48px;margin:10px 0 0;padding:10px 15px;border:1px solid var(--line);border-radius:12px;background:var(--paper);color:var(--blue);font-size:15px;font-weight:800;cursor:pointer}
+.clear-selection-link[hidden],#clearSelectionBtn[hidden]{display:none!important}
+#clearSelectionBtn{border-color:var(--blue);color:var(--blue);font-weight:800}
+.state-row.is-selected,.state-row[aria-pressed="true"]{background:var(--blue-soft);border-radius:10px;box-shadow:inset 3px 0 0 var(--blue)}
+.state-tile.is-selected,.geo-map .geo-state[data-selected="true"]{stroke:var(--blue);stroke-width:3;stroke-linejoin:round;filter:drop-shadow(0 0 2px rgba(18,91,192,.38))}
+#explorerClearCity{margin-top:10px;width:100%;min-height:50px}
+button:focus-visible,input:focus-visible,a:focus-visible,[tabindex="0"]:focus-visible{outline:3px solid var(--blue);outline-offset:3px}
+#mapTitle:focus{outline:none}
+@media(max-width:700px){.clear-selection-link{width:100%;font-size:16px}.selected-actions button{min-height:52px}#allBrazilBtn{order:-1;width:100%;font-weight:800}.explorer-back{font-size:16px;min-height:52px}}
+
+.state-tile.is-selected{outline:3px solid var(--blue);outline-offset:1px;border-radius:8px}

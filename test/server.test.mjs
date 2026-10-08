@@ -10,7 +10,7 @@ test('pagina inicial e paginas SEO regionais respondem',async()=>{
  const b=await req('/eleicoes-2026/parana');assert.equal(b.status,200);assert.match(await b.text(),/Eleições 2026 em Paraná/);
 });
 test('rotas de saúde e sitemap funcionam',async()=>{
- assert.equal((await (await req('/api/health')).json()).version,'6.3.0');
+ assert.equal((await (await req('/api/health')).json()).version,'6.5.0');
  const r=await req('/sitemap.xml');assert.equal(r.status,200);assert.match(await r.text(),/eleicoes-2026\/acre/);
 });
 test('API rejeita parametros indevidos',async()=>{
@@ -74,4 +74,16 @@ test('API de prévia do segundo turno não fornece votos anteriores à eleição
   assert.equal(stateMap.preview,true);assert.deepEqual(stateMap.states,[]);
   const auto=await (await req('/api/auto')).json();
   assert.equal(auto.recommendedRound,1,'o primeiro turno segue padrão antes do dia 25');
+});
+
+
+test('mapa municipal oferece selecao unica com historico de cores opcional',async()=>{
+  const html=await (await req('/')).text();
+  assert.match(html,/id="explorerShowCompared"[^>]+aria-pressed="false"/);
+  assert.match(html,/id="explorerMapHint"/);
+  const js=await (await req('/app.js')).text();
+  assert.match(js,/showConsultedCities=false/);
+  assert.match(js,/isSelected=cityGeoUF===uf&&item.code===municipality/);
+  assert.match(js,/showConsultedCities&&Boolean\(outcome\?\.leader\)/);
+  assert.match(js,/if\(selectedCityPath\)svg.append\(selectedCityPath\)/);
 });

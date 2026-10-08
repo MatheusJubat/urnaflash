@@ -1,6 +1,43 @@
-# UrnaFlash 6.3 — Prévia liberada do segundo turno (presidência e governadores)
+# UrnaFlash 6.5 — Voltar ao Brasil e navegação acessível
+
+## Novo comportamento
+
+- **Brasil inteiro é a visão sem filtros geográficos:** ao desmarcar o estado ou a cidade, o portal retorna ao Brasil, limpa campos de seleção e mostra resultado nacional para presidente.
+- **Mesmo estado novamente:** toca no estado já selecionado no mapa ou lista e volta ao Brasil.
+- **Mesma cidade novamente:** toca no município já selecionado no mapa do estado e volta ao Brasil.
+- **Voltar ao Brasil:** botão no explorador estadual e no painel de resultados. **Limpar seleção** junto aos resultados e no campo principal de busca.
+- **F5/atualizar página:** qualquer cidade ou estado aberto volta ao Brasil; o turno segue a regra do calendário de Brasília ou o parâmetro explícito `?turno=2`.
+- **Links compartilhados:** uma URL direta para estado/cidade ainda abre a região no primeiro acesso; ao atualizar a página, a seleção geográfica é limpa.
+- **Acessibilidade:** botões grandes, foco visível para teclado, avisos para leitores de tela, estados selecionados identificados por texto/ARIA e opção de limpar seleção sem interagir com mapa pequeno.
+- **Turnos:** a prévia do segundo turno antes de 25/10, a virada automática no dia 25 e os dados oficiais seguem como na v6.4. Não são exibidos números fictícios.
+- Ao voltar ao Brasil, o cargo volta a **presidente**, pois governador e deputados são disputas estaduais. As preferências de tema são preservadas.
+
+## Publicação
+
+1. Extraia o ZIP e faça upload dos arquivos **internos** na raiz do repositório `urnaflash` (GitHub), substituindo a versão anterior.
+2. Faça commit na branch `main`; o Render atualizará o mesmo Web Service se Auto Deploy estiver ativo.
+3. Confirme as rotas de teste `/api/health`, `/api/results?round=1&uf=br&office=presidente` e `/api/map?round=1`.
+4. Teste selecionar Paraná no mapa, voltar ao Brasil, selecionar cidade, limpar seleção e dar F5 com a cidade selecionada.
+5. Em caso de CSS antigo em cache, use Ctrl+Shift+R no desktop ou aba anônima no celular.
+
+Comandos Render: Build `npm install --ignore-scripts`; Start `npm start`; Node >=20.
+
+## Fontes e limitações
+
+O backend permanece dependente dos arquivos oficiais de resultados do TSE e dos limites do IBGE. Consulta real à CDN, inclusive no dia do segundo turno, precisa de validação no Render. A porcentagem de seções totalizadas não é percentual de votos apurados.
+
+# UrnaFlash 6.4 — Seleção clara de município no mapa estadual
 
 Site independente de acompanhamento dos resultados das eleições brasileiras de 2026. Funciona em navegador, responsivo para celular e desktop. **Nenhum resultado simulado é enviado ao visitante.**
+
+## Correção da versão 6.4 — mapa municipal
+
+- **Problema anterior:** ao consultar várias cidades em sequência, todas as cidades visitadas ficavam pintadas com a cor do candidato à frente. Parecia que o mapa selecionava várias cidades ao mesmo tempo.
+- **Correção:** por padrão, **somente uma cidade aparece selecionada**, com preenchimento suave e contorno azul mais visível. Cidades anteriores voltam ao cinza.
+- **Opção de comparação:** o botão **Ver cores das cidades consultadas** exibe opcionalmente as cores dos líderes presidenciais das cidades visitadas nesta sessão. O contorno azul continua mostrando qual é a cidade ativa.
+- A cidade é destacada **imediatamente ao clicar ou pesquisar**, mesmo antes de a consulta dos votos retornar.
+- Não confundir as cores do modo de comparação com previsão eleitoral ou confirmação de eleitos.
+- O restante do portal, o segundo turno e o modo mobile foram preservados.
 
 ## Novidade da 6.3: segundo turno aberto para testar agora
 
@@ -57,7 +94,7 @@ Para validar também a virada automática de data, os testes incluem instantes U
 - O painel consulta dados nacionais, estaduais e municipais sob demanda. Em caso de falha da fonte, indica indisponibilidade e não cria números.
 - Datas e eleição são descobertas no catálogo oficial `ele-c.json`. A estrutura do 2º turno só poderá ser definitivamente validada após disponibilização oficial dos respectivos arquivos.
 - Não há garantia de tempo real absoluto; há cache e intervalo de polling. O site informa a hora do arquivo oficial quando disponível.
-- Mapa municipal: limites IBGE; **só municípios consultados** recebem cor, porque consultar simultaneamente milhares de arquivos violaria boas práticas de consumo de API.
+- Mapa municipal: limites IBGE; **somente a cidade selecionada é destacada por padrão**. A coloração por votos anteriores é opcional e só usa municípios consultados nesta sessão, porque consultar simultaneamente milhares de arquivos violaria boas práticas de consumo de API.
 - O mapa não declara vitória a partir de cores ou porcentagens parciais.
 
 ## Arquivos

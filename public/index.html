@@ -32,6 +32,7 @@
             <input type="search" id="cityQuery" autocomplete="off" placeholder="Ex.: São Paulo, Salvador ou Manaus" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="citySuggestions" aria-describedby="citySearchHelp">
             <button type="button" id="cityFindBtn" class="button primary">Buscar</button>
           </div>
+          <button id="clearCityBtn" type="button" class="clear-selection-link" hidden>✕ Limpar seleção e ver Brasil inteiro</button>
           <div id="citySuggestions" class="city-suggestions" role="listbox" aria-label="Cidades encontradas" hidden></div>
           <p id="citySearchHelp" class="search-feedback" role="status" aria-live="polite">Busque sua cidade e veja os resultados do TSE.</p>
           <div class="capital-shortcuts" aria-label="Acesso rápido às capitais">
@@ -55,11 +56,12 @@
       </aside>
     </section>
     <section id="mapa" class="section map-section" aria-labelledby="mapTitle">
-      <div class="section-head"><div><span class="eyebrow">MAPA INTERATIVO</span><h2 id="mapTitle">Do Brasil à sua cidade</h2><p>Toque ou clique em um estado para explorar suas cidades e consultar os votos. As cores indicam apenas a liderança nos dados publicados.</p></div><span class="source-label">Fonte: TSE · Atualização automática</span></div>
+      <div class="section-head"><div><span class="eyebrow">MAPA INTERATIVO</span><h2 id="mapTitle" tabindex="-1">Do Brasil à sua cidade</h2><p>Toque ou clique em um estado para explorar suas cidades e consultar os votos. As cores indicam apenas a liderança nos dados publicados.</p></div><span class="source-label">Fonte: TSE · Atualização automática</span></div>
       <div class="national-summary surface" id="nationalSummary" aria-label="Resumo nacional da apuração">
         <div class="national-heading"><div><span class="eyebrow">PRESIDÊNCIA · BRASIL</span><h3 id="nationalStatus">Buscando atualização do TSE</h3><p id="nationalStatusDetail">Acompanhe o avanço das seções totalizadas em todo o país.</p></div><span class="national-status-chip" id="nationalBadge">Consultando</span></div>
         <div class="national-values"><div><span>Seções totalizadas</span><strong id="nationalProgress">—</strong><div class="progress-track"><span id="nationalProgressBar"></span></div></div><div><span>Seções restantes</span><strong id="nationalRemaining">—</strong><small id="nationalSectionTotal">Aguardando dados</small></div><div><span id="nationalLeadLabel">Candidato à frente</span><strong id="nationalLeader">—</strong><small id="nationalLeaderInfo">Resultado informado pelo TSE</small></div></div>
       </div>
+      <p id="selectionAnnouncement" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></p>
       <div class="map-grid" id="mapGrid">
         <div class="surface map-panel">
           <div class="panel-head"><div class="round-pill"><span id="mapRoundLabel">1º turno</span><span class="line-divider"></span><span>Presidência</span></div><button class="text-button" type="button" id="mapRefresh">↻ Atualizar mapa</button></div>
@@ -87,9 +89,13 @@
           <p id="explorerSearchStatus" class="explorer-search-status" role="status" aria-live="polite">Escolha um município no mapa ou pesquise acima.</p>
           <div class="explorer-map-head"><strong>Municípios do estado</strong><div class="explorer-zoom" aria-label="Controles de zoom"><button type="button" id="explorerZoomOut" aria-label="Diminuir zoom" title="Diminuir zoom">−</button><button type="button" id="explorerZoomIn" aria-label="Aumentar zoom" title="Aumentar zoom">+</button><button type="button" id="explorerZoomReset" aria-label="Restaurar zoom" title="Restaurar mapa">⌖</button></div></div>
           <div id="cityMap" class="municipality-map"><p class="loading-state">Selecione um estado.</p></div>
-          <p class="explorer-map-note">Arraste para mover o mapa ampliado. Os municípios ficam neutros até a consulta de seus votos.</p>
-          <div id="explorerSelected" class="explorer-selection" hidden><span class="eyebrow">CIDADE SELECIONADA</span><strong id="explorerSelectedName"></strong><p id="explorerSelectedSummary">Consultando dados do TSE...</p><button type="button" id="explorerSeeResult" class="button primary">Ver todos os votos da cidade ↓</button></div>
-          <p class="explorer-source">Limites: IBGE · Resultados: TSE. A cor de uma cidade consultada representa apenas quem recebeu mais votos nela, não o fim da apuração.</p>
+          <div class="explorer-color-controls">
+            <div class="explorer-key" aria-label="Legenda de seleção de município"><span><i class="explorer-key-selected" aria-hidden="true"></i> Cidade selecionada</span><span><i class="explorer-key-neutral" aria-hidden="true"></i> Demais municípios</span></div>
+            <button type="button" id="explorerShowCompared" class="button secondary" aria-pressed="false" aria-describedby="explorerMapHint">Ver cores das cidades consultadas</button>
+          </div>
+          <p class="explorer-map-note" id="explorerMapHint">Só a cidade selecionada recebe contorno azul. As outras permanecem neutras.</p>
+          <div id="explorerSelected" class="explorer-selection" hidden><span class="eyebrow">CIDADE SELECIONADA</span><strong id="explorerSelectedName"></strong><p id="explorerSelectedSummary">Consultando dados do TSE...</p><button type="button" id="explorerSeeResult" class="button primary">Ver todos os votos da cidade ↓</button><button type="button" id="explorerClearCity" class="button secondary">✕ Desmarcar cidade e ver Brasil</button></div>
+          <p class="explorer-source">Limites geográficos: IBGE · Votos: TSE. Na opção de cores, cada município consultado pode mostrar quem está à frente para presidente; isso não indica necessariamente vitória oficial. Cidades não consultadas permanecem neutras.</p>
         </aside>
       </div>
     </section>
@@ -115,7 +121,7 @@
             </div>
           </div>
           <div class="selected-area"><div><span>Local consultado</span><strong id="selectedPlace">Brasil inteiro</strong><small id="selectedPlaceHint">Clique no mapa para consultar um estado ou busque sua cidade acima.</small></div>
-            <div class="selected-actions"><button type="button" id="changePlaceBtn" class="button secondary">Buscar outra cidade</button><button type="button" id="allBrazilBtn" class="button secondary">Ver Brasil</button><button type="button" id="refreshBtn" class="button secondary">↻ Atualizar</button></div>
+            <div class="selected-actions"><button type="button" id="changePlaceBtn" class="button secondary">Buscar outra cidade</button><button type="button" id="clearSelectionBtn" class="button secondary" hidden>✕ Limpar seleção</button><button type="button" id="allBrazilBtn" class="button secondary">Ver Brasil</button><button type="button" id="refreshBtn" class="button secondary">↻ Atualizar</button></div>
           </div>
         </div>
         <div id="stateRaceSummary" class="race-summary" hidden aria-live="polite">
