@@ -11,9 +11,10 @@ const fmtVotes=n=>Number(n||0).toLocaleString('pt-BR');
 const fmtPct=n=>Number(n||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'%';
 const fetchJson=async path=>{const response=await fetch(path,{cache:'no-store'});if(!response.ok)throw Error('HTTP '+response.status);return response.json();};
 const el=(tag,className,text)=>{const node=document.createElement(tag);if(className)node.className=className;if(text!==undefined)node.textContent=text;return node;};
-let round=1,office='presidente',uf='br',municipality='',manualTurn=false,allCandidates=false;
+let round=1,office='presidente',uf='br',municipality='',cityName='',manualTurn=false,allCandidates=false;
 let resultsSequence=0,mapSequence=0,statesData={},geoFeatures=null,mapRound=1,cityCache={},refreshTimer;
 let cityGeoFeatures=null,cityGeoUF='',cityVoteCache=new Map();
+let explorerOpenedFrom=null,explorerLoadSequence=0,latestResult=null,viewZoom=1,mapViewBox=null,ignoreNextMapClick=false;
 const readStore=(key,defaultValue)=>{try{return localStorage.getItem(key)||defaultValue;}catch{return defaultValue;}};
 const writeStore=(key,val)=>{try{localStorage.setItem(key,val);}catch{}};
 function setTheme(theme){const isDark=theme==='dark';document.documentElement.dataset.theme=isDark?'dark':'light';$('#themeToggle').setAttribute('aria-pressed',String(isDark));$('#themeToggle').setAttribute('aria-label',isDark?'Ativar modo claro':'Ativar modo escuro');$('#themeIcon').textContent=isDark?'☀':'☾';$('#themeLabel').textContent=isDark?'Modo claro':'Modo escuro';writeStore('urnaflash-theme',theme);}
@@ -25,26 +26,40 @@ function setStatus(kind,title,msg){const node=$('#statusBanner');node.dataset.st
 function resetCandidateList(){allCandidates=false;$('#candidateList').replaceChildren(el('div','empty-message','Aguardando a publicação dos resultados para esta seleção.'));$('#moreBar').hidden=true;
   for(const [key,txt] of [['progressPercent','—'],['validVotes','—'],['lastUpdated','—'],['sectionCounts','Sem informação'],['progressText','Sem informação']])$('#'+key).textContent=txt;
   $('#progressBar').style.width='0%';}
-function populateOffices(){const select=$('#officeSelect'),current=office;
-  [...select.options].forEach(opt=>{opt.disabled=round===2&&!['presidente','governador'].includes(opt.value)||opt.value==='deputado-distrital'&&uf!=='df'||opt.value==='deputado-estadual'&&uf==='df';});
+function populateOffices(){
   if(round===2&&!['presidente','governador'].includes(office))office='presidente';
   if(office==='deputado-distrital'&&uf!=='df')office='deputado-estadual';
   if(office==='deputado-estadual'&&uf==='df')office='deputado-distrital';
-  select.value=office;}
-function updateHeadings(){populateOffices();$('#roundSelect').value=String(round);$('#ufSelect').value=uf;
+  document.querySelectorAll('#officeButtons [data-office]').forEach(btn=>{
+    const code=btn.dataset.office;
+    const unavailable=round===2&&!['presidente','governador'].includes(code)||code==='deputado-distrital'&&uf!=='df'||code==='deputado-estadual'&&uf==='df';
+    btn.disabled=unavailable;btn.classList.toggle('active',office===code);btn.setAttribute('aria-pressed',String(office===code));
+  });
+}
+function updateHeadings(){populateOffices();
+  document.querySelectorAll('#turnButtons [data-round]').forEach(btn=>{const active=Number(btn.dataset.round)===round;btn.classList.toggle('active',active);btn.setAttribute('aria-pressed',String(active));});
   $('#mapRoundLabel').textContent=round+'º turno';
-  const title=STATE_NAMES[uf]||'Brasil';
-  $('#officeCaption').textContent=OFFICES[office].toUpperCase();$('#electionHeading').textContent=`${round}º turno · ${title}${municipality?' · município':''}`;
-  $('#resultsSubtitle').textContent=municipality?'Apuração municipal publicada pelo TSE':office==='senador'?'Duas vagas de senador em disputa por estado':'Resultados oficiais da eleição selecionada';
+  const title=cityName&&municipality?`${cityName} (${uf.toUpperCase()})`:STATE_NAMES[uf]||'Brasil';
+  $('#officeCaption').textContent=OFFICES[office].toUpperCase();$('#electionHeading').textContent=`${round}º turno · ${title}`;
+  $('#resultsSubtitle').textContent=municipality?'Votos recebidos neste município conforme o TSE':office==='senador'?'Duas vagas de senador em disputa por estado':'Resultados oficiais da eleição selecionada';
+  $('#selectedPlace').textContent=municipality?title:uf==='br'?'Brasil inteiro':STATE_NAMES[uf];
+  $('#selectedPlaceHint').textContent=municipality?'Resultado municipal · dados do TSE':uf==='br'?'Busque sua cidade acima ou escolha um estado no mapa.':'Resultado estadual · clique no mapa para trocar.';
+  $('#changePlaceBtn').textContent=uf==='br'&&office!=='presidente'?'Escolher estado no mapa':'Buscar outra cidade';
   $('#heroRound').textContent=round+'º turno';$('#heroTitle').textContent=round===1?'Resultados do 1º turno':'Apuração do 2º turno';
   $('#heroSubtitle').textContent=round===1?'4 de outubro · Dados oficiais do TSE':'25 de outubro · Acompanhamento oficial';
-  applyURL();}
+  $('#cityCardTitle').textContent=municipality?`Você está vendo ${cityName||'sua cidade'}`:'Sua cidade, sem complicação';
+  $('#cityCardDescription').textContent=municipality?`Mostramos os votos de ${OFFICES[office].toLowerCase()} em ${cityName||'seu município'}, ${STATE_NAMES[uf]}. Para trocar de cidade, basta usar a busca no topo.`:'Digite o nome da sua cidade no campo no início da página. Não precisa procurar códigos nem navegar por uma lista enorme.';
+  $('#cityMapToggle').disabled=uf==='br';
+  applyURL();
+}
 function changeRound(value,manual=true){round=value;if(manual)manualTurn=true;
-  municipality='';populateOffices();updateHeadings();resetCandidateList();refreshResults();refreshMap();}
-function changeOffice(value){office=value;municipality='';if(office==='deputado-distrital'){uf='df';$('#cityUF').value='df';}
-  if(office==='deputado-estadual'&&uf==='df')office='deputado-distrital';
-  populateOffices();updateHeadings();resetCandidateList();refreshResults();}
-function changeUF(code){if(!STATE_NAMES[code])return;uf=code;municipality='';populateOffices();updateHeadings();resetCandidateList();refreshResults();drawMap();}
+  updateHeadings();resetCandidateList();refreshResults();refreshMap();}
+function changeOffice(value){if(!OFFICES[value])return;office=value;
+  if(office==='deputado-distrital'&&uf!=='df'){office='deputado-estadual';toast('Deputado distrital é exclusivo do Distrito Federal. Selecione DF no mapa.');return;}
+  updateHeadings();resetCandidateList();refreshResults();}
+function changeUF(code){if(!STATE_NAMES[code])return;uf=code;municipality='';cityName='';
+  $('#cityQuery').value='';renderCitySuggestions([]);showCityFeedback('Busque sua cidade pelo nome para ver os votos municipais.');
+  updateHeadings();resetCandidateList();refreshResults();drawMap();if(code==='br')closeCityMap();}
 function candidateElement(candidate,i){
   const node=el('div','candidate');node.dataset.identity=candidate.number;
   node.append(el('span','candidate-rank',String(i+1).padStart(2,'0')));
@@ -60,7 +75,7 @@ function paintCandidates(){const max=allCandidates?latestCandidates.length:Math.
   $('#candidateList').replaceChildren(...latestCandidates.slice(0,max).map(candidateElement));
   $('#moreBar').hidden=latestCandidates.length<=8||allCandidates;
 }
-function showResults(data){latestCandidates=data.candidates||[];allCandidates=false;paintCandidates();
+function showResults(data){latestResult=data;latestCandidates=data.candidates||[];allCandidates=false;paintCandidates();updateExplorerSummary(data);
   if(municipality&&office==='presidente'&&['ok','stale'].includes(data.state)){cityVoteCache.set(`${round}-${uf}-${municipality}`,data.candidates[0]);if(cityGeoUF===uf&&!$('#cityMapPanel').hidden)drawCityMap();}
   $('#progressPercent').textContent=fmtPct(data.progress);$('#progressBar').style.width=Math.min(100,Math.max(0,data.progress))+'%';
   $('#validVotes').textContent=fmtVotes(data.validVotes);$('#lastUpdated').textContent=data.generatedAt||'Não informada';
@@ -77,7 +92,7 @@ async function refreshResults(){const my=++resultsSequence;updateHeadings();
     showResults(data);
     setStatus(data.state==='ok'?'ok':'awaiting',data.state==='ok'?(data.finished?'Totalização concluída':'Números oficiais disponíveis'):'Último resultado conhecido',
       data.state==='stale'?'Atualização falhou, mostrando última leitura oficial disponível.':`Os dados são do TSE. ${data.finished?'Totalização finalizada no arquivo atual.':'Parcial: a distribuição pode mudar.'}`);
-  }else{latestCandidates=[];resetCandidateList();
+  }else{latestResult=null;updateExplorerSummary(null);latestCandidates=[];resetCandidateList();
     setStatus(data.state==='awaiting'||data.state==='choose-state'?'awaiting':'error',
       data.state==='choose-state'?'Escolha um estado':data.state==='awaiting'?'Aguardando publicação do TSE':'Não foi possível carregar o resultado',data.message||'Tente novamente em instantes.');}
 }
@@ -135,25 +150,63 @@ async function refreshMap(){const seq=++mapSequence;mapRound=round;$('#statesRea
   catch{if(seq!==mapSequence)return;$('#statesReady').textContent='Indisponível';renderStateList();drawMap();}
 }
 async function loadGeometry(){try{const data=await fetchJson('/api/geo/states');if(data?.features?.length){geoFeatures=data.features;drawMap();}}catch{drawTiles();}}
-function selectState(code){changeUF(code);$('#resultados').scrollIntoView({behavior:'smooth',block:'start'});}
-async function loadCities(code){const select=$('#citySelect');select.disabled=true;$('#citySearchBtn').disabled=true;$('#cityMapToggle').disabled=true;select.replaceChildren(new Option('Carregando municípios...',''));
-  if(!code){select.replaceChildren(new Option('Selecione primeiro um estado',''));return;}
-  let data=cityCache[code];
-  try{if(!data){data=await fetchJson(`/api/municipalities?uf=${code}`);if(data.state==='ok')cityCache[code]=data;}}
-  catch{data={state:'unavailable'};}
-  if(code!==$('#cityUF').value)return;
-  if(data.state!=='ok'||!data.municipalities?.length){select.replaceChildren(new Option('Municípios indisponíveis no TSE',''));
-    $('#cityHint').textContent='O catálogo de municípios não respondeu. Consulte a fonte TSE e tente novamente mais tarde.';return;}
-  select.replaceChildren(new Option('Selecione um município',''),...data.municipalities.map(city=>new Option(city.name,city.code)));
-  select.disabled=false;$('#cityMapToggle').disabled=false;$('#cityHint').textContent=`${fmtVotes(data.municipalities.length)} municípios no catálogo oficial. Selecione uma cidade para consultar o resultado.`;
+function selectState(code){explorerOpenedFrom=document.activeElement;changeUF(code);openCityMap();
+  const target=$('#mapa');if(!matchMedia('(max-width:800px)').matches)target.scrollIntoView({behavior:'smooth',block:'start'});
+}
+// A busca geral usa o catalogo EA12 do TSE no servidor; nao exige selecionar UF.
+const normalizeName=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('pt-BR');
+let citySearchRequest=0,searchTimer=null,searchRows=[],searchCursor=-1;
+function renderCitySuggestions(items){const root=$('#citySuggestions');root.replaceChildren();searchRows=items;searchCursor=-1;$('#cityQuery').removeAttribute('aria-activedescendant');
+  items.forEach((item,i)=>{const btn=el('button','city-suggestion');btn.type='button';btn.setAttribute('role','option');btn.setAttribute('aria-selected','false');btn.id='city-option-'+i;
+    const label=el('strong','',item.name);const area=el('small','',STATE_NAMES[item.uf]||item.uf.toUpperCase());btn.append(label,area);
+    btn.addEventListener('click',()=>selectCity(item));root.append(btn);
+  });root.hidden=!items.length;$('#cityQuery').setAttribute('aria-expanded',String(!!items.length));
+}
+function showCityFeedback(text){$('#citySearchHelp').textContent=text;}
+async function queryCities(immediate=false){clearTimeout(searchTimer);const q=$('#cityQuery').value.trim();const seq=++citySearchRequest;
+  if(q.length<2){renderCitySuggestions([]);showCityFeedback('Digite pelo menos duas letras do nome da cidade.');return;}
+  const run=async()=>{showCityFeedback('Procurando cidades...');
+    try{const data=await fetchJson('/api/cities/search?q='+encodeURIComponent(q));if(seq!==citySearchRequest)return;
+      renderCitySuggestions(data.cities||[]);
+      if(data.state==='partial')showCityFeedback((data.message||'Busca limitada no momento.')+((data.cities||[]).length?' Selecione a cidade encontrada.':''));
+      else showCityFeedback((data.cities||[]).length?`${data.cities.length} opções. Toque na cidade desejada ou use as setas do teclado.`:'Não encontramos essa cidade. Confira a grafia e tente novamente.');
+    }catch{if(seq!==citySearchRequest)return;renderCitySuggestions([]);showCityFeedback('Não foi possível consultar o catálogo do TSE. Tente novamente daqui a pouco.');}
+  };if(immediate)await run();else searchTimer=setTimeout(run,220);
+}
+function selectCity(item,{fromExplorer=false}={}){const code=String(item.code||'').padStart(5,'0');if(!/^[0-9]{5}$/.test(code)||!STATE_NAMES[item.uf])return;
+  uf=item.uf;municipality=code;cityName=item.name;$('#cityQuery').value=`${item.name} — ${item.uf.toUpperCase()}`;
+  renderCitySuggestions([]);showCityFeedback(`Local selecionado: ${item.name}, ${STATE_NAMES[uf]}. Resultado exibido abaixo.`);
+  try{localStorage.setItem('urnaflash-last-city',JSON.stringify({code,uf,name:item.name}));}catch{}
+  updateLastCity();updateHeadings();resetCandidateList();updateExplorerSelection();refreshResults();drawMap();
+  if(fromExplorer)return;
+  closeCityMap();
+  $('#resultados').scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
+}
+function updateLastCity(){let saved=null;try{saved=JSON.parse(localStorage.getItem('urnaflash-last-city')||'null');}catch{}
+  $('#lastCityBtn').hidden=!(saved&&/^[0-9]{5}$/.test(saved.code)&&STATE_NAMES[saved.uf]);
+  if(saved)$('#lastCityBtn').textContent=`↶ Última cidade: ${saved.name||'município'} (${saved.uf.toUpperCase()})`;
+}
+function setupCitySearch(){
+  $('#cityQuery').addEventListener('input',()=>queryCities());
+  $('#cityFindBtn').addEventListener('click',()=>{if(searchRows.length===1)selectCity(searchRows[0]);else queryCities(true);});
+  $('#cityQuery').addEventListener('keydown',event=>{const count=searchRows.length;if(event.key==='Escape'){renderCitySuggestions([]);return;}
+    if(event.key==='ArrowDown'||event.key==='ArrowUp'){if(!count)return;event.preventDefault();searchCursor=(searchCursor+(event.key==='ArrowDown'?1:-1)+count)%count;
+      [...$('#citySuggestions').children].forEach((node,i)=>node.setAttribute('aria-selected',String(i===searchCursor)));
+      $('#cityQuery').setAttribute('aria-activedescendant','city-option-'+searchCursor);
+    }else if(event.key==='Enter'){event.preventDefault();if(searchCursor>=0&&searchRows[searchCursor])selectCity(searchRows[searchCursor]);else if(count===1)selectCity(searchRows[0]);else queryCities(true);}
+  });
+  document.addEventListener('click',event=>{if(!event.target.closest('#busca'))renderCitySuggestions([]);});
+  $('#lastCityBtn').addEventListener('click',()=>{let saved;try{saved=JSON.parse(localStorage.getItem('urnaflash-last-city')||'null');}catch{}if(saved)selectCity(saved);});
+  updateLastCity();
 }
 function cityGeoId(feature){
   const p=feature.properties||{};for(const raw of [p.codarea,p.CD_MUN,p.codigo,p.id,feature.id]){const id=String(raw||'').trim();if(/^\d{7}$/.test(id))return id;}
   return null;
 }
 function drawCityMap(){
+  const previousBox=mapViewBox?[...mapViewBox]:null, previousZoom=viewZoom;
   if(!cityGeoFeatures?.length){$('#cityMap').replaceChildren(el('p','loading-state','Mapa geográfico municipal indisponível no momento.'));return;}
-  const lookup=new Map((cityCache[cityGeoUF]?.municipalities||[]).map(city=>[city.ibge,city]));
+  const lookup=new Map((cityCache[cityGeoUF]?.municipalities||[]).map(city=>[city.ibge,{...city,uf:cityGeoUF}]));
   let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
   for(const f of cityGeoFeatures)for(const poly of polygonsFor(f.geometry))for(const ring of poly)for(const pt of ring){
     const [x,y]=pt;if(!Number.isFinite(x)||!Number.isFinite(y))continue;
@@ -177,22 +230,72 @@ function drawCityMap(){
     path.setAttribute('tabindex','0');path.setAttribute('role','button');
     const title=outcome?`${item.name} · ${outcome.name} · ${fmtPct(outcome.percentage)}`:`${item.name} · clique para consultar`;path.setAttribute('aria-label',title);
     const t=document.createElementNS(ns,'title');t.textContent=title;path.append(t);
-    const show=()=>{$('#citySelect').value=item.code;$('#citySearchBtn').disabled=false;$('#citySearchBtn').click();};
+    const show=()=>{if(ignoreNextMapClick)return;selectCity(item,{fromExplorer:true});$('#explorerSearch').value=item.name;$('#explorerSearchStatus').textContent=`Cidade selecionada: ${item.name}.`;};
     path.addEventListener('click',show);path.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();show();}});
     svg.append(path);drawn++;
   }
   if(!drawn){$('#cityMap').replaceChildren(el('p','loading-state','Não foi possível relacionar esta malha aos códigos municipais do TSE.'));return;}
-  $('#cityMap').replaceChildren(svg);
+  $('#cityMap').replaceChildren(svg);resetExplorerZoom();
+  if(previousBox&&previousZoom>1){mapViewBox=previousBox;viewZoom=previousZoom;svg.setAttribute('viewBox',mapViewBox.join(' '));updateZoomButtons();}
+  wireExplorerPan(svg);
 }
+function resetExplorerZoom(){viewZoom=1;const svg=$('#cityMap svg');if(!svg)return;mapViewBox=[0,0,790,530];svg.setAttribute('viewBox',mapViewBox.join(' '));updateZoomButtons();}
+function updateZoomButtons(){const out=$('#explorerZoomOut');if(out)out.disabled=viewZoom<=1;}
+function zoomExplorer(factor){const svg=$('#cityMap svg');if(!svg||!mapViewBox)return;const z=Math.max(1,Math.min(8,viewZoom*factor));if(z===viewZoom)return;
+  const [x,y,w,h]=mapViewBox;const newW=790/z,newH=530/z;const cx=x+w/2,cy=y+h/2;
+  mapViewBox=[Math.max(0,Math.min(790-newW,cx-newW/2)),Math.max(0,Math.min(530-newH,cy-newH/2)),newW,newH];viewZoom=z;svg.setAttribute('viewBox',mapViewBox.join(' '));updateZoomButtons();
+}
+function wireExplorerPan(svg){let pan=null;
+  svg.addEventListener('pointerdown',e=>{if(viewZoom===1||e.button>0)return;pan={x:e.clientX,y:e.clientY,orig:[...mapViewBox],dragged:false};});
+  svg.addEventListener('pointermove',e=>{if(!pan)return;const dx=e.clientX-pan.x,dy=e.clientY-pan.y;if(Math.abs(dx)+Math.abs(dy)>8&&!pan.dragged){pan.dragged=true;try{svg.setPointerCapture(e.pointerId);}catch{}}
+    if(!pan.dragged)return;const rect=svg.getBoundingClientRect(),[ox,oy,w,h]=pan.orig;
+    mapViewBox=[Math.max(0,Math.min(790-w,ox-dx*w/rect.width)),Math.max(0,Math.min(530-h,oy-dy*h/rect.height)),w,h];svg.setAttribute('viewBox',mapViewBox.join(' '));
+  });
+  const end=e=>{if(!pan)return;if(pan.dragged){ignoreNextMapClick=true;setTimeout(()=>ignoreNextMapClick=false,90);}pan=null;try{svg.releasePointerCapture(e.pointerId);}catch{}};
+  svg.addEventListener('pointerup',end);svg.addEventListener('pointercancel',end);
+}
+function updateExplorerSelection(){const card=$('#explorerSelected');if(!municipality||cityGeoUF!==uf){card.hidden=true;return;}
+  card.hidden=false;$('#explorerSelectedName').textContent=`${cityName} · ${STATE_NAMES[uf]}`;$('#explorerSelectedSummary').textContent='Buscando os votos oficiais desta cidade...';
+}
+function updateExplorerSummary(data){if(!municipality||$('#explorerSelected').hidden)return;
+  const elem=$('#explorerSelectedSummary');
+  if(data&&(data.state==='ok'||data.state==='stale')&&data.candidates?.length){const leader=data.candidates[0];elem.textContent=`${leader.name} recebeu ${fmtPct(leader.percentage)} dos votos informados. ${data.finished?'Totalização concluída.':'Apuração parcial.'}`;}
+  else elem.textContent='Não foi possível apresentar os votos desta cidade neste momento. Você ainda pode tentar novamente no painel completo.';
+}
+function renderExplorerSuggestions(){const query=normalizeName($('#explorerSearch').value.trim()),root=$('#explorerSuggestions');root.replaceChildren();
+  if(!query||!cityCache[uf]?.municipalities){root.hidden=true;$('#explorerSearchStatus').textContent='Digite o nome da cidade ou toque no mapa.';return;}
+  const items=cityCache[uf].municipalities.filter(c=>normalizeName(c.name).includes(query)).slice(0,8);
+  for(const item of items){const btn=el('button','explorer-suggestion',item.name);btn.type='button';btn.addEventListener('click',()=>{selectCity({...item,uf},{fromExplorer:true});$('#explorerSearch').value=item.name;$('#explorerSearchStatus').textContent=`Cidade selecionada: ${item.name}. Os resultados aparecem abaixo.`;root.hidden=true;});root.append(btn);}
+  root.hidden=!items.length;$('#explorerSearchStatus').textContent=items.length?`${items.length} cidade(s) encontrada(s). Toque em uma opção.`:'Cidade não encontrada neste estado. Confira o nome.';
+}
+function closeCityMap(){++explorerLoadSequence;$('#cityMapPanel').hidden=true;$('#statesList').closest('.state-sidebar').hidden=false;$('#mapGrid').classList.remove('exploring');document.body.classList.remove('explorer-open');
+  $('#cityMap').replaceChildren(el('p','loading-state','Selecione um estado para explorar.'));$('#explorerSearch').value='';$('#explorerSuggestions').hidden=true;$('#explorerSelected').hidden=true;
+  if(explorerOpenedFrom?.isConnected)explorerOpenedFrom.focus({preventScroll:true});
+}
+
 async function openCityMap(){
-  const selected=$('#cityUF').value;if(!selected||!cityCache[selected]){toast('Selecione um estado com lista de municípios disponível.');return;}
-  $('#cityMapPanel').hidden=false;$('#cityMapTitle').textContent='Mapa dos municípios · '+STATE_NAMES[selected];
+  const selected=uf;if(selected==='br'){toast('Escolha um estado no mapa do Brasil.');return;}
+  const seq=++explorerLoadSequence;
+  $('#cityMapPanel').hidden=false;$('#statesList').closest('.state-sidebar').hidden=true;$('#mapGrid').classList.add('exploring');
+  if(matchMedia('(max-width:800px)').matches){document.body.classList.add('explorer-open');$('#cityMapClose').focus({preventScroll:true});}
+  if(cityGeoUF!==selected){viewZoom=1;mapViewBox=null;}
+  $('#cityMapPanel').setAttribute('role',matchMedia('(max-width:800px)').matches?'dialog':'region');$('#cityMapPanel').setAttribute('aria-modal',String(matchMedia('(max-width:800px)').matches));
+  $('#cityMapTitle').textContent='Mapa do '+(selected==='df'?'Distrito Federal':STATE_NAMES[selected]);
+  $('#explorerBreadcrumb').textContent=selected.toUpperCase();
+  $('#explorerSearch').value='';$('#explorerSuggestions').hidden=true;$('#explorerSearchStatus').textContent='Digite uma cidade ou toque no mapa.';
+  $('#cityMap').replaceChildren(el('p','loading-state','Preparando as cidades e o mapa do estado...'));
+  updateExplorerSelection();
+  if(!cityCache[selected]){
+    try{const data=await fetchJson('/api/municipalities?uf='+selected);if(seq!==explorerLoadSequence)return;
+      if(data.state==='ok')cityCache[selected]=data;else throw Error('Catálogo indisponível');
+    }catch{if(seq!==explorerLoadSequence)return;$('#cityMap').replaceChildren(el('p','loading-state','Não conseguimos carregar a lista do TSE agora. Use a busca de cidade no topo da página.'));return;}
+  }
   if(cityGeoUF===selected&&cityGeoFeatures){drawCityMap();return;}
-  $('#cityMap').replaceChildren(el('p','loading-state','Carregando os limites municipais do IBGE...'));
-  try{const data=await fetchJson('/api/geo/cities?uf='+selected);
-    if(selected!==$('#cityUF').value)return;
-    cityGeoFeatures=data.features||null;cityGeoUF=selected;drawCityMap();
-  }catch{cityGeoFeatures=null;cityGeoUF='';drawCityMap();}
+  try{const data=await fetchJson('/api/geo/cities?uf='+selected);if(seq!==explorerLoadSequence)return;
+    cityGeoFeatures=data.features||null;cityGeoUF=selected;drawCityMap();updateExplorerSelection();
+  }catch{if(seq!==explorerLoadSequence)return;cityGeoFeatures=null;cityGeoUF=selected;
+    $('#cityMap').replaceChildren(el('p','loading-state','O mapa do IBGE está temporariamente indisponível. A pesquisa de municípios acima continua funcionando.'));
+  }
 }
 async function checkAutomaticRound(){if(manualTurn)return;
   try{const data=await fetchJson('/api/auto');const candidate=data.recommendedRound===2?2:1;
@@ -212,24 +315,35 @@ function setupSharing(){
 async function cleanupOldSW(){try{if('serviceWorker' in navigator)for(const r of await navigator.serviceWorker.getRegistrations())if(r.scope.startsWith(location.origin))await r.unregister();}catch{}
   try{if('caches' in window)for(const k of await caches.keys())if(k.startsWith('urnaflash-shell-'))await caches.delete(k);}catch{}}
 function init(){setTheme(readStore('urnaflash-theme','light'));$('#themeToggle').addEventListener('click',()=>setTheme(document.documentElement.dataset.theme==='dark'?'light':'dark'));
-  for(const [code,name] of STATES){$('#ufSelect').append(new Option(name,code));$('#cityUF').append(new Option(name,code));}
   const path=location.pathname.split('/').filter(Boolean),code=Object.entries(SLUGS).find(([,slug])=>slug===path[1])?.[0];
   uf=code||'br';const params=new URLSearchParams(location.search);
   manualTurn=params.get('turno')==='1'||params.get('turno')==='2';round=params.get('turno')==='2'?2:1;
   office=OFFICES[params.get('cargo')]?params.get('cargo'):'presidente';municipality=/^\d{5}$/.test(params.get('municipio')||'')?params.get('municipio'):'';
-  $('#roundSelect').addEventListener('change',e=>changeRound(Number(e.target.value)));
-  $('#officeSelect').addEventListener('change',e=>changeOffice(e.target.value));
-  $('#ufSelect').addEventListener('change',e=>changeUF(e.target.value));
+  if(municipality){cityName=uf==='pr'&&municipality==='75221'?'Carambeí':`Município ${municipality}`;}
+  document.querySelectorAll('#turnButtons [data-round]').forEach(btn=>btn.addEventListener('click',()=>changeRound(Number(btn.dataset.round))));
+  document.querySelectorAll('#officeButtons [data-office]').forEach(btn=>btn.addEventListener('click',()=>changeOffice(btn.dataset.office)));
+  $('#changePlaceBtn').addEventListener('click',()=>{if(uf==='br'&&office!=='presidente'){$('#mapa').scrollIntoView({behavior:'smooth'});$('#stateSearch').focus();}else{$('#cityQuery').focus();$('#busca').scrollIntoView({behavior:'smooth'});}});
+  $('#allBrazilBtn').addEventListener('click',()=>{changeUF('br');$('#resultados').scrollIntoView({behavior:'smooth'});});
   $('#refreshBtn').addEventListener('click',refreshResults);$('#mapRefresh').addEventListener('click',refreshMap);
   $('#stateSearch').addEventListener('input',renderStateList);
   $('#moreCandidates').addEventListener('click',()=>{allCandidates=true;paintCandidates();});
-  $('#cityUF').addEventListener('change',e=>{$('#cityMapPanel').hidden=true;loadCities(e.target.value);});
-  $('#cityMapToggle').addEventListener('click',openCityMap);$('#cityMapClose').addEventListener('click',()=>$('#cityMapPanel').hidden=true);
-  $('#citySelect').addEventListener('change',e=>{$('#citySearchBtn').disabled=!e.target.value;});
-  $('#citySearchBtn').addEventListener('click',()=>{if(!$('#citySelect').value)return;
-    uf=$('#cityUF').value;municipality=$('#citySelect').value;updateHeadings();resetCandidateList();refreshResults();$('#resultados').scrollIntoView({behavior:'smooth'});
+  $('#cityMapToggle').addEventListener('click',()=>{explorerOpenedFrom=document.activeElement;openCityMap();$('#mapa').scrollIntoView({behavior:'smooth',block:'start'});});
+  $('#cityMapClose').addEventListener('click',closeCityMap);
+  $('#explorerSearch').addEventListener('input',renderExplorerSuggestions);
+  $('#explorerSearch').addEventListener('keydown',e=>{if(e.key==='Enter'){const first=$('#explorerSuggestions button');if(first){e.preventDefault();first.click();}}});
+  $('#explorerSeeResult').addEventListener('click',()=>{closeCityMap();$('#resultados').scrollIntoView({behavior:'smooth',block:'start'});});
+  $('#explorerZoomIn').addEventListener('click',()=>zoomExplorer(1.6));$('#explorerZoomOut').addEventListener('click',()=>zoomExplorer(1/1.6));$('#explorerZoomReset').addEventListener('click',resetExplorerZoom);
+  document.addEventListener('keydown',e=>{if($('#cityMapPanel').hidden)return;
+    if(e.key==='Escape'){e.preventDefault();closeCityMap();return;}
+    if(e.key==='Tab'&&matchMedia('(max-width:800px)').matches){
+      const focusables=[...$('#cityMapPanel').querySelectorAll('button:not([disabled]):not([hidden]),input:not([disabled]),[tabindex="0"]')].filter(n=>n.getClientRects().length);
+      const first=focusables[0],last=focusables[focusables.length-1];if(!first||!last)return;
+      if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}
+      else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}
+    }
   });
-  setupSharing();updateHeadings();drawTiles();renderStateList();refreshResults();refreshMap();loadGeometry();checkAutomaticRound();cleanupOldSW();
+
+  setupCitySearch();setupSharing();updateHeadings();drawTiles();renderStateList();refreshResults();refreshMap();loadGeometry();checkAutomaticRound();cleanupOldSW();
   refreshTimer=setInterval(()=>{if(document.hidden)return;refreshResults();refreshMap();checkAutomaticRound();},60_000);
   document.addEventListener('visibilitychange',()=>{if(!document.hidden){refreshResults();refreshMap();checkAutomaticRound();}});
 }

@@ -68,7 +68,13 @@ function safeText(value){return String(value??'').trim().slice(0,180);}
 export function normalizeTseResult(raw,{round,uf,office,municipality=''}){
   const role=OFFICES[office];if(!role)throw new Error('Cargo nao previsto');
   if(raw.t!==undefined && String(raw.t)!==String(round))throw new Error('Turno diferente do solicitado');
-  if(raw.cdabr && String(raw.cdabr).toLowerCase()!==uf)throw new Error('UF diferente da solicitada');
+  // No arquivo municipal, cdabr identifica o MUNICIPIO, nao a sigla da UF.
+  // Conferir ambas as abrangencias para evitar rejeitar votacoes validas.
+  const abrangencia=String(raw.cdabr??'').toLowerCase();
+  if(municipality){
+    if(raw.tpabr && raw.tpabr!=='mu')throw new Error('Abrangencia municipal incorreta');
+    if(abrangencia && abrangencia!==municipality)throw new Error('Municipio diferente do solicitado');
+  }else if(abrangencia && abrangencia!==uf)throw new Error('UF diferente da solicitada');
   const candidates=[];
   for(const cargo of raw.carg||[]){
     if(String(cargo.cd)!==role.code)continue;
@@ -146,7 +152,8 @@ export function parseMunicipalities(json,uf){
   function visit(node,region=''){
     if(Array.isArray(node)){for(const part of node)visit(part,region);return;}
     if(!node||typeof node!=='object')return;
-    const cd=String(node.cd??node.cm??'');
+    const value=node.cd??node.cm??'';
+    const cd=/^\d{1,5}$/.test(String(value))?String(value).padStart(5,'0'):String(value);
     const nextRegion=/^[a-z]{2}$/i.test(cd)?cd.toLowerCase():
       /^[a-z]{2}$/i.test(String(node.uf??''))?String(node.uf).toLowerCase():region;
     const name=safeText(node.nm||node.n||node.ds||'');
@@ -175,3 +182,43 @@ export async function loadMunicipalities(uf){
   }catch{return {state:'unavailable',municipalities:[]};}
 }
 export function activeRoundFromResults(first,second){return ['ok','stale'].includes(second?.state)&&second?.candidates?.some(c=>c.votes>0)&&second?.sectionsCounted>0?2:1;}
+
+// Municipio validado em tabela de codigos TSE de 2024 (Portaria 594/2024),
+// corroborado pelo IBGE 4104659. Usado somente se o catalogo EA12 falhar;
+// nao representa votos e NAO confirma a publicacao do arquivo EA20 de 2026.
+const REFERENCE_MUNICIPALITIES=[{code:'75221',ibge:'4104659',name:'Carambeí',uf:'pr'}];
+export function normalizeSearch(value){return String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('pt-BR').trim();}
+export function searchMunicipalities(rows,q,uf='',limit=12){
+  const term=normalizeSearch(q);
+  if(term.length<2)return [];
+  return rows.filter(city=>(!uf||city.uf===uf)&&normalizeSearch(city.name).includes(term))
+    .sort((a,b)=>{
+      const x=normalizeSearch(a.name),y=normalizeSearch(b.name);
+      return Number(!x.startsWith(term))-Number(!y.startsWith(term))||x.length-y.length||x.localeCompare(y,'pt-BR');
+    }).slice(0,limit);
+}
+let catalogCache={at:0,value:null,inflight:null};
+export async function searchCities(q,uf=''){
+  if(normalizeSearch(q).length<2)return {state:'ok',cities:[]};
+  if(uf && (!STATES.has(uf)||uf==='br'))return {state:'invalid',cities:[]};
+  const recent=catalogCache.value && Date.now()-catalogCache.at<MUNICIPALITIES_TTL;
+  let catalog=recent?catalogCache.value:null;
+  if(!catalog){
+    if(!catalogCache.inflight){
+      catalogCache.inflight=(async()=>{
+        const cfg=await getElectionConfig();
+        const e=electionFromConfig(cfg,1,'presidente');
+        if(!e)throw new Error('Eleicao federal nao encontrada');
+        const id=String(e.cd).padStart(6,'0');
+        const raw=(await readCached(`${BASE}/ele2026/${e.cd}/config/mun-e${id}-cm.json`,MUNICIPALITIES_TTL)).value;
+        const rows=STATE_CODES.flatMap(code=>parseMunicipalities(raw,code).map(city=>({...city,uf:code})));
+        if(rows.length<500)throw new Error('Catalogo de municipios incompleto');
+        catalogCache={at:Date.now(),value:rows,inflight:null};return rows;
+      })().finally(()=>catalogCache.inflight=null);
+    }
+    try{catalog=await catalogCache.inflight;}catch{catalog=catalogCache.value;}
+  }
+  if(!catalog){return {state:'partial',cities:searchMunicipalities(REFERENCE_MUNICIPALITIES,q,uf),message:'A busca completa de cidades esta temporariamente indisponivel. Tente novamente em instantes.'};}
+  // Fallback pontual somente se houver inconsistencias no cadastro recebido.
+  return {state:'ok',cities:searchMunicipalities(catalog,q,uf)};
+}

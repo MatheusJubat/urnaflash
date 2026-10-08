@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {OFFICES,electionFromConfig,officialUrl,normalizeTseResult,toNum,parseMunicipalities,activeRoundFromResults} from '../tse.mjs';
+import {OFFICES,electionFromConfig,officialUrl,normalizeTseResult,toNum,parseMunicipalities,activeRoundFromResults,searchMunicipalities,normalizeSearch} from '../tse.mjs';
 const config={pl:[{cd:'3220',c:'ele2026',dt:'04/10/2026',e:[
   {cd:'6257',cdt2:'6258',t:'1',abr:[{cd:'br',cp:[{cd:'1',ds:'Presidente'}]}]},
   {cd:'6259',cdt2:'6260',t:'1',abr:[{cd:'br',cp:[{cd:'3'},{cd:'5'},{cd:'6'},{cd:'7'},{cd:'8'}]}]}
@@ -40,12 +40,26 @@ test('proteção contra injeção em codigo de municipio e uf',()=>{
   assert.throws(()=>officialUrl(e,'br','senador'),/Escolha uma UF/);
 });
 test('catálogo de municípios agrupado por UF',()=>{
-  const sample={abr:[{cd:'ac',mu:[{cd:'01120',cdi:'1200013',nm:'Acrelândia'}]},{cd:'pr',mu:[{cd:'75353',cdi:'4106902',nm:'Curitiba'},{cd:'76678',cdi:'4113700',nm:'Londrina'}]}]};
-  assert.deepEqual(parseMunicipalities(sample,'pr').map(x=>x.name),['Curitiba','Londrina']);
+  const sample={abr:[{cd:'ac',mu:[{cd:'01120',cdi:'1200013',nm:'Acrelândia'}]},{cd:'pr',mu:[{cd:'75353',cdi:'4106902',nm:'Curitiba'},{cd:'76678',cdi:'4113700',nm:'Londrina'},{cd:75221,cdi:4104659,nm:'Carambeí'}]}]};
+  assert.deepEqual(parseMunicipalities(sample,'pr').map(x=>x.name),['Carambeí','Curitiba','Londrina']);
   assert.equal(parseMunicipalities(sample,'ac')[0].code,'01120');
 });
 test('segundo turno so entra em destaque com dados validos',()=>{
   assert.equal(activeRoundFromResults(null,{state:'awaiting'}),1);
   assert.equal(activeRoundFromResults(null,{state:'ok',sectionsCounted:0,candidates:[{votes:90}]}),1);
   assert.equal(activeRoundFromResults(null,{state:'ok',sectionsCounted:10,candidates:[{votes:90}]}),2);
+});
+
+test('resultado municipal de Carambeí aceita cdabr numérico da cidade, não exige cdabr PR',()=>{
+  const sample={...raw,tpabr:'mu',cdabr:'75221'};
+  const result=normalizeTseResult(sample,{round:1,uf:'pr',office:'senador',municipality:'75221'});
+  assert.equal(result.municipality,'75221');
+  assert.equal(result.candidates[0].votes,1200000);
+  assert.throws(()=>normalizeTseResult(sample,{round:1,uf:'pr',office:'senador',municipality:'75222'}),/Municipio/);
+});
+test('busca municipal reconhece acentos, nomes e estado correto',()=>{
+  const sample=[{uf:'pr',name:'Carambeí',code:'75221',ibge:'4104659'},{uf:'sp',name:'Campinas',code:'62910',ibge:'3509502'}];
+  assert.equal(normalizeSearch(' CARAMBÉI '),'carambei');
+  assert.equal(searchMunicipalities(sample,'carambei')[0].code,'75221');
+  assert.equal(searchMunicipalities(sample,'campinas','pr').length,0);
 });

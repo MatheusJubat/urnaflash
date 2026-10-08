@@ -2,7 +2,7 @@ import http from 'node:http';
 import {readFile,stat} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 import path from 'node:path';
-import {getElectionConfig,electionFromConfig,loadResult,loadStateMap,loadMunicipalities,getStates,OFFICES,activeRoundFromResults} from './tse.mjs';
+import {getElectionConfig,electionFromConfig,loadResult,loadStateMap,loadMunicipalities,getStates,OFFICES,activeRoundFromResults,searchCities} from './tse.mjs';
 import {REGIONS,regionBySlug,slugPath} from './regions.mjs';
 
 const PORT=Number(process.env.PORT||3000), HOST=process.env.HOST||'0.0.0.0';
@@ -60,7 +60,7 @@ async function getGeometry(kind,uf=''){
 export const server=http.createServer(async(req,res)=>{
   security(res);const head=req.method==='HEAD';if(req.method!=='GET'&&!head)return json(res,405,{error:'Metodo nao permitido'});
   let url;try{url=new URL(req.url,`http://${req.headers.host||'localhost'}`);}catch{return json(res,400,{error:'URL invalida'},head);}
-  if(url.pathname==='/api/health')return json(res,200,{ok:true,service:'urnaflash',version:'3.0.0'},head);
+  if(url.pathname==='/api/health')return json(res,200,{ok:true,service:'urnaflash',version:'5.0.0'},head);
   if(url.pathname==='/api/status'){
     try{const c=await getElectionConfig();return json(res,200,{source:'TSE',rounds:{'1':!!electionFromConfig(c,1),'2':!!electionFromConfig(c,2)},checkedAt:new Date().toISOString()},head);}catch{return json(res,503,{error:'Fonte TSE indisponivel'},head);}
   }
@@ -78,6 +78,12 @@ export const server=http.createServer(async(req,res)=>{
   if(url.pathname==='/api/map'){
     const round=Number(url.searchParams.get('round')||1);if(![1,2].includes(round))return json(res,400,{state:'invalid'},head);
     return json(res,200,await loadStateMap(round),head);
+  }
+  if(url.pathname==='/api/cities/search'){
+    const q=(url.searchParams.get('q')||'').slice(0,90);
+    const state=(url.searchParams.get('uf')||'').toLowerCase();
+    if(state && !IBGE_CODES[state])return json(res,400,{state:'invalid',cities:[]},head);
+    return json(res,200,await searchCities(q,state),head);
   }
   if(url.pathname==='/api/municipalities'){
     const uf=(url.searchParams.get('uf')||'').toLowerCase();if(!IBGE_CODES[uf])return json(res,400,{state:'invalid'},head);
@@ -106,4 +112,4 @@ export const server=http.createServer(async(req,res)=>{
     return send(res,200,bytes,types[path.extname(file)]||'application/octet-stream',head,'public,max-age=300');}
   catch{return json(res,404,{error:'Arquivo nao encontrado'},head);}
 });
-if(process.env.NODE_ENV!=='test')server.listen(PORT,HOST,()=>console.log(`UrnaFlash v3 em ${HOST}:${PORT}`));
+if(process.env.NODE_ENV!=='test')server.listen(PORT,HOST,()=>console.log(`UrnaFlash v5 em ${HOST}:${PORT}`));
