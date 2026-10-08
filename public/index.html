@@ -1,173 +1,84 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#f7f9fc">
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f6f8fb">
   <meta name="description" content="{{PAGE_DESCRIPTION}}">
-  <meta property="og:title" content="{{PAGE_TITLE}}">
-  <meta property="og:description" content="{{PAGE_DESCRIPTION}}">
-  <meta property="og:type" content="website">
-  <meta property="og:locale" content="pt_BR">
-  <meta property="og:site_name" content="UrnaFlash">
-  <meta property="og:url" content="{{PAGE_URL}}">
-  <meta property="og:image" content="{{OG_IMAGE_URL}}">
-  <meta name="twitter:card" content="summary_large_image">
-  <link rel="canonical" href="{{PAGE_URL}}">
-  <meta name="robots" content="index,follow,max-image-preview:large">
-  <script type="application/ld+json" id="structuredData">{{JSON_LD}}</script>
-  <link rel="icon" href="/icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/styles.css">
-  <script src="/app.js" defer></script>
+  <meta property="og:title" content="{{PAGE_TITLE}}"><meta property="og:description" content="{{PAGE_DESCRIPTION}}">
+  <meta property="og:type" content="website"><meta property="og:locale" content="pt_BR"><meta property="og:site_name" content="UrnaFlash">
+  <meta property="og:url" content="{{PAGE_URL}}"><meta property="og:image" content="{{OG_IMAGE_URL}}"><meta name="twitter:card" content="summary_large_image">
+  <meta name="robots" content="index,follow,max-image-preview:large"><link rel="canonical" href="{{PAGE_URL}}">
+  <script id="structuredData" type="application/ld+json">{{JSON_LD}}</script>
+  <link rel="icon" href="/icon.svg" type="image/svg+xml"><link rel="stylesheet" href="/styles.css"><script defer src="/app.js"></script>
   <title>{{PAGE_TITLE}}</title>
 </head>
 <body>
-  <a class="skip-link" href="#apuracao">Pular para resultados</a>
-  <div class="topline">
-    <div class="container topline-inner">
-      <span><span class="tiny-dot" aria-hidden="true"></span> ELEIÇÕES 2026</span>
-      <span>Informação eleitoral independente · Fonte: TSE</span>
-    </div>
-  </div>
-
-  <header class="site-header">
-    <div class="container header-inner">
-      <a class="logo" href="/" aria-label="UrnaFlash — página inicial">
-        <span class="logo-mark" aria-hidden="true">
-          <svg viewBox="0 0 36 36" width="36" height="36" fill="none"><rect x="1" y="1" width="34" height="34" rx="10" fill="currentColor"/><path d="M10 18.5 15.2 23l10.8-11" stroke="white" stroke-width="3.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </span>
-        <span class="logo-type">urna<span>flash</span><small>ELEIÇÕES 2026</small></span>
-      </a>
-      <nav class="header-nav" aria-label="Menu principal">
-        <a href="#apuracao">Resultados</a>
-        <a href="#estados">Estados</a>
-        <a href="#entenda">Entenda</a>
-        <a href="#anuncie">Anuncie</a>
-      </nav>
-      <div class="header-actions">
-        <button type="button" class="theme-toggle" id="themeToggle" aria-label="Ativar modo escuro" aria-pressed="false">
-          <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 14.1A8.5 8.5 0 0 1 9.9 3.5a8.5 8.5 0 1 0 10.6 10.6Z"/></svg>
-          <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2m10-10h-2M4 12H2m17.1 7.1-1.4-1.4M6.3 6.3 4.9 4.9m14.2 0-1.4 1.4M6.3 17.7l-1.4 1.4"/></svg>
-          <span id="themeLabel">Modo escuro</span>
-        </button>
+  <a class="skip" href="#resultados">Ir para os resultados</a>
+  <div class="topbar"><div class="shell topline"><span>ELEIÇÕES GERAIS 2026</span><span>Portal independente · Fonte oficial: TSE</span></div></div>
+  <header class="header"><div class="shell navline">
+    <a href="/" class="brand" aria-label="UrnaFlash, início"><span class="brand-icon" aria-hidden="true">✓</span><span><b>urna<span class="blue">flash</span></b><small>RESULTADOS ELEITORAIS</small></span></a>
+    <nav class="mainnav" aria-label="Menu principal"><a href="#mapa">Mapa do Brasil</a><a href="#resultados">Resultados</a><a href="#cidades">Municípios</a><a href="#anuncie">Anuncie</a></nav>
+    <button id="themeToggle" class="icon-button" type="button" aria-pressed="false" aria-label="Ativar modo escuro"><span id="themeIcon">☾</span><span id="themeLabel">Modo escuro</span></button>
+  </div></header>
+  <main class="shell">
+    <section class="hero" aria-labelledby="heroHeading">
+      <div class="hero-content"><span class="kicker"><span class="pulse" aria-hidden="true"></span> BRASIL · ELEIÇÕES 2026</span>
+        <h1 id="heroHeading">Seu voto. <span>Sua cidade.</span><br>Todo o Brasil em um mapa.</h1>
+        <p>Veja os resultados do primeiro turno e acompanhe a apuração do segundo, estado por estado, com dados publicados pelo Tribunal Superior Eleitoral.</p>
+        <div class="hero-actions"><a class="button primary" href="#mapa">Explorar o mapa <span aria-hidden="true">↗</span></a><a class="button secondary" href="#resultados">Ver resultados</a></div>
       </div>
-    </div>
-  </header>
-
-  <main class="container">
-    <section class="intro" aria-labelledby="page-heading">
-      <div class="intro-copy">
-        <span class="eyebrow"><span class="tiny-dot" aria-hidden="true"></span> RESULTADOS DAS ELEIÇÕES 2026</span>
-        <h1 id="page-heading">A apuração, <span>sem complicação.</span></h1>
-        <p>Resultados da eleição presidencial em um só lugar. Números claros, atualizações automáticas e a fonte oficial sempre à vista.</p>
-        <div class="intro-actions">
-          <a class="button button-primary" href="#apuracao">Ver resultados <span aria-hidden="true">→</span></a>
-          <button class="button button-quiet" id="shareBtn" type="button">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m9 11 6-4M9 13l6 4"/></svg> Compartilhar
-          </button>
-        </div>
-      </div>
-      <aside class="date-card" aria-label="Informações do segundo turno">
-        <div class="date-top"><span>SEGUNDO TURNO</span><span class="date-pill">25 OUT · 2026</span></div>
-        <strong>Próxima apuração</strong>
-        <p>Domingo, 25 de outubro de 2026</p>
-        <div class="date-divider"></div>
-        <div class="date-footer">
-          <span id="countdownText">Aguardando o dia da votação</span>
-          <span class="date-icon" aria-hidden="true">↗</span>
-        </div>
+      <aside class="today-card" aria-label="Informação da apuração">
+        <div class="today-top"><span class="eyebrow">ACOMPANHAMENTO 2026</span><span class="small-pill" id="heroRound">1º turno</span></div>
+        <div class="today-middle"><span class="today-symbol">▥</span><div><span class="subtle">Painel em destaque</span><strong id="heroTitle">Resultados do 1º turno</strong><small id="heroSubtitle">4 de outubro · Dados do TSE</small></div></div>
+        <div class="today-bottom"><span class="circle-status"></span><span id="autoStatus">Verificando disponibilidade da apuração...</span></div>
       </aside>
     </section>
-
-    <section class="results-section" id="apuracao" aria-labelledby="results-title">
-      <div class="section-title">
-        <div>
-          <span class="section-kicker">PAINEL ELEITORAL</span>
-          <h2 id="results-title">Acompanhe a apuração</h2>
-          <p>Escolha o turno e a região para consultar a divulgação oficial.</p>
+    <section id="mapa" class="section map-section" aria-labelledby="mapTitle">
+      <div class="section-head"><div><span class="eyebrow">MAPA INTERATIVO</span><h2 id="mapTitle">O Brasil estado por estado</h2><p>Selecione uma unidade da Federação para ver a votação local. As cores indicam quem está na frente nos votos já publicados.</p></div><span class="source-label">Fonte: TSE · Atualização automática</span></div>
+      <div class="map-grid">
+        <div class="surface map-panel">
+          <div class="panel-head"><div class="round-pill"><span id="mapRoundLabel">1º turno</span><span class="line-divider"></span><span>Presidência</span></div><button class="text-button" type="button" id="mapRefresh">↻ Atualizar mapa</button></div>
+          <div id="geoMap" class="geo-map" aria-label="Mapa interativo dos estados brasileiros"><div class="loading-state">Carregando mapa do Brasil...</div></div>
+          <div class="map-legend"><span><i class="dot red"></i> Lula · 13</span><span><i class="dot green"></i> Flávio Bolsonaro · 22</span><span><i class="dot purple"></i> Outro candidato</span><span><i class="dot gray"></i> Sem dados</span></div>
+          <p class="caption">Cor = candidato com mais votos na UF na seleção atual. Não representa projeção, vitória nacional nem totalização concluída. O mapa usa limites geográficos do IBGE quando disponíveis.</p>
         </div>
-        <span id="sourcePill" class="source-status"><span class="tiny-dot" aria-hidden="true"></span><span id="sourceText">Consultando o TSE</span></span>
-      </div>
-      <div class="filters">
-        <div class="round-tabs" role="group" aria-label="Escolher turno">
-          <button id="round2" class="selected" type="button" aria-pressed="true">2º turno <small>25 out</small></button>
-          <button id="round1" type="button" aria-pressed="false">1º turno <small>04 out</small></button>
-        </div>
-        <div class="filter-right">
-          <label class="region-picker" for="ufSelect"><span class="picker-caption">Região</span><select id="ufSelect"><option value="br">Brasil — geral</option></select><svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></label>
-          <button class="refresh-button" id="refreshBtn" type="button" aria-label="Atualizar apuração">
-            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M5.8 9A7 7 0 0 1 18.2 7M18.2 15A7 7 0 0 1 5.8 17"/></svg>
-            <span>Atualizar</span>
-          </button>
-        </div>
-      </div>
-      <div class="status-banner" role="status" id="statusBanner">
-        <span class="banner-symbol" aria-hidden="true">i</span>
-        <div><strong>Aguardando a divulgação</strong><span>Os números aparecem assim que o TSE os disponibilizar.</span></div>
-      </div>
-
-      <div class="results-card">
-        <div class="result-top">
-          <div><span class="card-kicker">PRESIDÊNCIA DA REPÚBLICA</span><h3 id="resultHeading">2º turno · {{PAGE_REGION}}</h3></div>
-          <span class="result-tag" id="panelPill">Aguardando apuração</span>
-        </div>
-        <div id="resultBody" class="candidate-grid" aria-live="polite">
-          <article class="candidate-card"><span class="candidate-meta">22 · PL</span><h4>Flávio Bolsonaro</h4><strong class="candidate-votes">—</strong><p>Votos ainda não divulgados</p></article>
-          <article class="candidate-card"><span class="candidate-meta">13 · PT</span><h4>Lula</h4><strong class="candidate-votes">—</strong><p>Votos ainda não divulgados</p></article>
-        </div>
-        <div class="result-bottom">
-          <div class="progress-head"><span>Seções totalizadas</span><strong id="progressPercent">—</strong></div>
-          <div class="progress-track" role="progressbar" aria-label="Seções totalizadas" aria-valuemin="0" aria-valuemax="100" id="progressTrack"><span id="progressBar"></span></div>
-          <div class="progress-info"><span id="progressText">Aguardando publicação</span><span id="sectionCounts">— seções</span></div>
-          <div class="result-foot"><span id="lastUpdated">Última atualização: indisponível</span><a href="https://resultados.tse.jus.br/oficial/app/index.html" target="_blank" rel="noopener noreferrer">Fonte: TSE <span aria-hidden="true">↗</span></a></div>
-        </div>
-      </div>
-      <div class="stat-grid" aria-label="Resumo da apuração">
-        <div class="stat-card"><span>Diferença de votos</span><strong id="voteDiff">—</strong><small id="voteDiffDetail">Entre os dois candidatos</small></div>
-        <div class="stat-card"><span>Votos válidos</span><strong id="validVotes">—</strong><small>Não incluem brancos e nulos</small></div>
-        <div class="stat-card"><span>Atualização automática</span><strong id="updateInterval">30 segundos</strong><small>Enquanto a página estiver aberta</small></div>
+        <aside class="surface state-sidebar">
+          <div class="sidebar-heading"><div><span class="eyebrow">EXPLORE OS RESULTADOS</span><h3 id="sidebarTitle">27 unidades da Federação</h3></div><span id="statesReady" class="tiny-badge">Consultando...</span></div>
+          <label class="field-label" for="stateSearch">Pesquisar estado</label><input id="stateSearch" type="search" placeholder="Ex.: Paraná, Minas Gerais..." autocomplete="off">
+          <div class="states-list" id="statesList"><div class="loading-state">Consultando dados oficiais...</div></div>
+        </aside>
       </div>
     </section>
-
-    <section class="sponsor" id="anuncie" aria-labelledby="sponsor-title">
-      <div class="sponsor-decoration" aria-hidden="true"><div class="sponsor-ring"></div><div class="sponsor-ring inner"></div><span>↗</span></div>
-      <div class="sponsor-copy">
-        <span class="ad-label">PUBLICIDADE · ESPAÇO COMERCIAL</span>
-        <h2 id="sponsor-title">Sua marca pode estar aqui.</h2>
-        <p>Conecte seu negócio aos visitantes que acompanham as eleições. Consulte nossos espaços para anúncios, com destaque no portal.</p>
-        <div class="sponsor-actions">
-          <button type="button" id="advertBtn" class="button button-primary sponsor-button">Quero anunciar <span aria-hidden="true">→</span></button>
-          <button type="button" class="button button-quiet" id="copyEmailBtn">Copiar e-mail comercial</button>
+    <section id="resultados" class="section results-section" aria-labelledby="resultsTitle">
+      <div class="section-head"><div><span class="eyebrow">PAINEL DE RESULTADOS</span><h2 id="resultsTitle">Todos os cargos, em um só lugar</h2><p>Escolha estado, turno e cargo. Deputados e senadores permanecem disponíveis no primeiro turno.</p></div><button class="text-button" id="shareBtn" type="button">↗ Compartilhar</button></div>
+      <div class="surface results-panel">
+        <div class="filters">
+          <div class="filter"><label for="roundSelect">Turno</label><select id="roundSelect"><option value="1">1º turno · 04 out</option><option value="2">2º turno · 25 out</option></select></div>
+          <div class="filter"><label for="officeSelect">Cargo</label><select id="officeSelect"><option value="presidente">Presidente</option><option value="governador">Governador</option><option value="senador">Senador</option><option value="deputado-federal">Deputado federal</option><option value="deputado-estadual">Deputado estadual</option><option value="deputado-distrital">Deputado distrital (DF)</option></select></div>
+          <div class="filter"><label for="ufSelect">Estado</label><select id="ufSelect"><option value="br">Brasil inteiro</option></select></div>
+          <div class="filter-actions"><button class="button secondary refresh" id="refreshBtn" type="button">↻ Atualizar</button></div>
         </div>
-        <small id="advertNote">Contato comercial por e-mail. Anúncios não influenciam os resultados.</small>
+        <div id="statusBanner" class="status-banner" role="status"><span class="status-marker"></span><div><strong id="statusTitle">Conectando ao TSE</strong><p id="statusMessage">Aguarde a verificação dos resultados oficiais.</p></div></div>
+        <div class="results-heading"><div><span class="eyebrow" id="officeCaption">PRESIDÊNCIA</span><h3 id="electionHeading">1º turno · Brasil</h3><p id="resultsSubtitle">Dados oficiais, quando disponibilizados</p></div><a id="tseLink" class="external-link" href="https://resultados.tse.jus.br/" target="_blank" rel="noopener noreferrer">Consultar TSE ↗</a></div>
+        <div id="candidateList" class="candidate-list"><div class="empty-message">Aguardando dados oficiais para a seleção.</div></div>
+        <div id="moreBar" class="more-bar" hidden><button class="text-button" id="moreCandidates" type="button">Mostrar todos os candidatos ↓</button></div>
+        <div class="statistics"><div class="stat"><span>Seções totalizadas</span><strong id="progressPercent">—</strong><div class="progress-track"><span id="progressBar"></span></div><small id="sectionCounts">Aguardando dados</small></div><div class="stat"><span>Votos válidos</span><strong id="validVotes">—</strong><small>Conforme arquivo da Justiça Eleitoral</small></div><div class="stat"><span>Atualização do TSE</span><strong class="time-value" id="lastUpdated">—</strong><small id="progressText">Aguardando disponibilidade</small></div></div>
       </div>
     </section>
-
-    <section class="details-grid" id="estados">
-      <article class="detail-card state-card">
-        <span class="section-kicker">CONSULTE SUA REGIÃO</span>
-        <h2>Resultados por estado</h2>
-        <p>Veja a apuração da sua região ou compartilhe uma página específica.</p>
-        <div class="state-links" aria-label="Acesso rápido por estado"><a href="/eleicoes-2026/sao-paulo">São Paulo <span>↗</span></a><a href="/eleicoes-2026/minas-gerais">Minas Gerais <span>↗</span></a><a href="/eleicoes-2026/rio-de-janeiro">Rio de Janeiro <span>↗</span></a><a href="/eleicoes-2026/parana">Paraná <span>↗</span></a><a href="/eleicoes-2026/bahia">Bahia <span>↗</span></a></div>
-        <p class="detail-hint">Para outros estados, use o seletor de região no painel acima.</p>
-      </article>
-      <article class="detail-card timeline-card">
-        <span class="section-kicker">EVOLUÇÃO DA CONTAGEM</span>
-        <h2>Histórico da apuração</h2>
-        <p>As mudanças nos resultados aparecem aqui enquanto você estiver acompanhando.</p>
-        <div id="historyBody" class="history-empty" aria-live="polite"><span class="empty-graphic" aria-hidden="true">⌁</span><strong>O histórico aparecerá aqui</strong><span>Aguardando atualizações oficiais.</span></div>
-      </article>
+    <section id="cidades" class="section city-section" aria-labelledby="cityHeading">
+      <div class="section-head"><div><span class="eyebrow">SUA CIDADE</span><h2 id="cityHeading">Como votou seu município?</h2><p>Escolha um estado e procure uma cidade para conferir os votos recebidos nela.</p></div></div>
+      <div class="surface city-content"><div class="city-description"><span class="city-icon">⌖</span><h3>Resultado perto de você</h3><p>Veja os números da sua cidade e compare com o estado. A lista de municípios depende da publicação oficial do TSE.</p></div>
+        <div class="city-form"><div class="filter"><label for="cityUF">Estado</label><select id="cityUF"><option value="">Escolha seu estado</option></select></div><div class="filter"><label for="citySelect">Município</label><select id="citySelect" disabled><option value="">Selecione primeiro um estado</option></select></div><div class="city-buttons"><button type="button" id="citySearchBtn" class="button primary" disabled>Ver votação da cidade →</button><button type="button" id="cityMapToggle" class="button secondary" disabled>Mapa municipal ▦</button></div><p id="cityHint" class="caption">Resultados municipais são carregados somente quando solicitados, para evitar sobrecarga na infraestrutura oficial.</p></div>
+      </div>
+      <div class="surface city-map-panel" id="cityMapPanel" hidden>
+        <div class="city-map-head"><div><h3 id="cityMapTitle">Mapa dos municípios</h3><p id="cityMapHint">Escolha uma cidade no mapa. Cinza significa não consultada neste navegador.</p></div><button type="button" class="text-button" id="cityMapClose">Fechar ✕</button></div>
+        <div id="cityMap" class="municipality-map"><p class="loading-state">Preparando mapa municipal...</p></div>
+        <p class="caption">Mapa municipal sob demanda · IBGE (limites) + TSE (resultados individuais). Os demais municípios não são consultados em lote. A cor aparece após consulta oficial válida.</p>
+      </div>
     </section>
-
-    <section class="transparency" id="entenda">
-      <div><span class="section-kicker">TRANSPARÊNCIA</span><h2>Informação clara, sempre.</h2><p>O UrnaFlash é independente e não é um canal oficial do TSE nem de candidatos ou partidos.</p></div>
-      <div class="transparency-points"><div><span class="point-number">01</span><div><strong>Dados oficiais</strong><p>Utilizamos a fonte de resultados do Tribunal Superior Eleitoral.</p></div></div><div><span class="point-number">02</span><div><strong>Sem previsões</strong><p>Mostramos números publicados. Resultado parcial não é resultado final.</p></div></div><div><span class="point-number">03</span><div><strong>Atualização identificada</strong><p>Se a fonte falhar, você verá um aviso — nunca resultados inventados.</p></div></div></div>
-    </section>
-
-    <section class="faq" aria-labelledby="faq-title"><div><span class="section-kicker">DÚVIDAS FREQUENTES</span><h2 id="faq-title">Entenda a apuração</h2></div><div class="faq-items"><details><summary>Quando acontece o segundo turno de 2026?</summary><p>A votação do segundo turno está marcada para 25 de outubro de 2026.</p></details><details><summary>De onde vêm os números?</summary><p>Da divulgação dos resultados oficiais pelo TSE. Quando não houver leitura disponível, exibimos o aviso correspondente.</p></details><details><summary>Por que o resultado muda durante a apuração?</summary><p>Porque novas seções eleitorais são totalizadas. Os percentuais parciais podem mudar até a conclusão.</p></details></div></section>
+    <section id="anuncie" class="ad-section" aria-labelledby="adHeading"><div class="ad-text"><span class="ad-eyebrow">ESPAÇO PUBLICITÁRIO DISPONÍVEL</span><h2 id="adHeading">Sua marca pode estar <em>aqui.</em></h2><p>Divulgue seu negócio em um espaço de destaque, ao lado da experiência de consulta das eleições de 2026.</p><div class="ad-actions"><button class="button ad-button" id="advertBtn" type="button">Quero anunciar ↗</button><button class="ad-copy" id="copyEmailBtn" type="button">Copiar e-mail comercial</button></div></div><div class="ad-art" aria-hidden="true"><div class="ad-shape a"></div><div class="ad-shape b"></div><span>✦</span></div></section>
+    <section class="method-section" id="sobre"><div><span class="eyebrow">TRANSPARÊNCIA</span><h2>Entenda os números</h2><p>O UrnaFlash é independente e não possui vínculo institucional com o TSE.</p></div><div class="method-items"><div><b>Dados oficiais</b><p>Somente números obtidos dos arquivos públicos da Justiça Eleitoral.</p></div><div><b>Parcial não é resultado final</b><p>A liderança em um estado pode mudar enquanto as seções são totalizadas.</p></div><div><b>Atualizações responsáveis</b><p>Se a fonte ficar indisponível, sinalizamos a falha em vez de inventar votos.</p></div></div></section>
   </main>
-
-  <footer class="footer"><div class="container footer-inner"><div class="footer-logo"><strong>urna<span>flash</span></strong><small>© 2026 · Portal independente de informações eleitorais.</small></div><div class="footer-links"><a href="#apuracao">Resultados</a><a href="#anuncie">Publicidade</a><a href="https://www.tse.jus.br/" target="_blank" rel="noopener noreferrer">Site oficial do TSE ↗</a></div></div></footer>
-  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
-</body>
-</html>
+  <footer class="footer"><div class="shell footline"><a class="footbrand" href="/">urna<span>flash</span><small> Informação para todos.</small></a><div><a href="https://resultados.tse.jus.br/" rel="noopener noreferrer" target="_blank">Fonte oficial · TSE ↗</a><span>© 2026 UrnaFlash · Portal independente</span></div></div></footer>
+  <div id="toast" class="toast" role="status" hidden></div>
+</body></html>

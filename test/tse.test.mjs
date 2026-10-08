@@ -1,49 +1,51 @@
-import test from 'node:test';
-import assert from 'node:assert/strict';
-import { electionFromConfig, officialUrl, normalizeTseResult, toNum } from '../tse.mjs';
-
-const config = {pl:[
-  {c:'ele2026',dt:'04/10/2026',e:[{cd:'6257',t:'1',abr:[{cd:'br',cp:[{cd:'1',ds:'Presidente'}]}]}]},
-  {c:'ele2026',dt:'25/10/2026',e:[{cd:'6258',t:'2',abr:[{cd:'br',cp:[{cd:'1',ds:'Presidente'}]}]}]},
-]};
-const fixture = {
-  t:'1',cdabr:'br',dg:'04/10/2026',hg:'22:30:00',and:'f',
-  s:{ts:'472075',st:'472075',pst:'100,00'},
-  e:{te:'158745463',est:'123456789'}, v:{tv:'124252796',tvn:'119973757',vb:'1323555',vn:'2955484'},
-  carg:[{cd:'1',agr:[
-    {par:[{sg:'PL',cand:[{n:'22',nm:'Flávio Bolsonaro',nmu:'FLÁVIO BOLSONARO',vap:'56103033',pvap:'47,03',dvt:'Válido'}]}]},
-    {par:[{sg:'PT',cand:[{n:'13',nm:'Lula',nmu:'LULA',vap:'53870724',pvap:'45,16',dvt:'Válido'}]}]},
-  ]}],
-};
-test('converte corretamente percentuais com vírgula',()=>{
- assert.equal(toNum('47,03'),47.03);
- assert.equal(toNum('56.103.033'),56103033);
- assert.equal(toNum('56103033'),56103033);
+import test from 'node:test';import assert from 'node:assert/strict';
+import {OFFICES,electionFromConfig,officialUrl,normalizeTseResult,toNum,parseMunicipalities,activeRoundFromResults} from '../tse.mjs';
+const config={pl:[{cd:'3220',c:'ele2026',dt:'04/10/2026',e:[
+  {cd:'6257',cdt2:'6258',t:'1',abr:[{cd:'br',cp:[{cd:'1',ds:'Presidente'}]}]},
+  {cd:'6259',cdt2:'6260',t:'1',abr:[{cd:'br',cp:[{cd:'3'},{cd:'5'},{cd:'6'},{cd:'7'},{cd:'8'}]}]}
+]}]};
+const role=(cd,sg,candidate)=>({cd,agr:[{par:[{sg,cand:[candidate]}]}]});
+const raw={t:'1',cdabr:'pr',dg:'04/10/2026',hg:'22:30:00',and:'f',
+ s:{ts:'12500',st:'12500',pst:'100,00'},v:{tv:'2500000',tvn:'2300000',vb:'100000',vn:'100000'},
+ carg:[role('5','Partido A',{n:'111',nmu:'Candidato de exemplo',vap:'1200000',pvap:'52,17'}),
+       role('6','Partido B',{n:'2222',nmu:'Pessoa exemplo',vap:'123456',pvap:'10,12',e:'s'})]};
+test('parse dos campos numericos em formato brasileiro',()=>{assert.equal(toNum('47,03'),47.03);assert.equal(toNum('1.234.567'),1234567);});
+test('config separa eleição federal e estadual',()=>{
+  assert.equal(electionFromConfig(config,1,'presidente').cd,'6257');
+  for(const office of ['governador','senador','deputado-federal','deputado-estadual','deputado-distrital'])assert.equal(electionFromConfig(config,1,office).cd,'6259');
+  assert.equal(electionFromConfig(config,2,'presidente'),null);
+  assert.equal(electionFromConfig(config,2,'senador'),null);
 });
-test('descobre os dois turnos no catálogo oficial sem presumir arquivo não publicado',()=>{
- assert.equal(electionFromConfig({pl: config.pl.slice(0,1)},2),null);
- const first=electionFromConfig(config,1);
- const second=electionFromConfig(config,2);
- assert.equal(first.cd,'6257');
- assert.equal(second.cd,'6258');
- assert.equal(officialUrl(first),'https://resultados.tse.jus.br/oficial/ele2026/6257/dados/br/br-c0001-e006257-u.json');
- assert.equal(officialUrl(second,'pr'),'https://resultados.tse.jus.br/oficial/ele2026/6258/dados/pr/pr-c0001-e006258-u.json');
+test('URLs distintas para cargos e municipios no 2026 do TSE',()=>{
+  assert.equal(officialUrl(electionFromConfig(config,1,'presidente'),'br','presidente'),'https://resultados.tse.jus.br/oficial/ele2026/6257/dados/br/br-c0001-e006257-u.json');
+  assert.equal(officialUrl(electionFromConfig(config,1,'senador'),'pr','senador'),'https://resultados.tse.jus.br/oficial/ele2026/6259/dados/pr/pr-c0005-e006259-u.json');
+  assert.equal(officialUrl(electionFromConfig(config,1,'senador'),'pr','senador','75353'),'https://resultados.tse.jus.br/oficial/ele2026/6259/dados/pr/pr75353-c0005-e006259-u.json');
 });
-test('normaliza EA20 com cargos, agrupamentos, partidos, candidatos e seções',()=>{
- const result=normalizeTseResult(fixture,1,'br');
- assert.equal(result.progress,100);
- assert.equal(result.sectionsCounted,472075);
- assert.equal(result.candidates[0].number,'22');
- assert.equal(result.candidates[0].votes,56103033);
- assert.equal(result.candidates[0].percentage,47.03);
- assert.equal(result.candidates[1].percentage,45.16);
- assert.equal(result.validVotes,119973757);
- assert.equal(result.finished,true);
+test('cargo senador e deputado do primeiro turno não se misturam',()=>{
+  const s=normalizeTseResult(raw,{round:1,uf:'pr',office:'senador'});
+  const d=normalizeTseResult(raw,{round:1,uf:'pr',office:'deputado-federal'});
+  assert.equal(s.candidates[0].number,'111');assert.equal(s.candidates[0].party,'Partido A');
+  assert.equal(d.candidates[0].number,'2222');assert.equal(d.candidates[0].elected,true);
+  assert.equal(d.progress,100);
 });
-test('recusa um arquivo de turno ou UF incorretos',()=>{
- assert.throws(()=>normalizeTseResult(fixture,2,'br'),/Turno/);
- assert.throws(()=>normalizeTseResult(fixture,1,'sp'),/Abrangência/);
+test('recusa dados de turno, uf e cargo errados',()=>{
+  assert.throws(()=>normalizeTseResult(raw,{round:2,uf:'pr',office:'senador'}),/Turno/);
+  assert.throws(()=>normalizeTseResult(raw,{round:1,uf:'sp',office:'senador'}),/UF/);
+  assert.throws(()=>normalizeTseResult(raw,{round:1,uf:'pr',office:'presidente'}),/sem candidatos/);
 });
-test('não permite UF injetada no caminho da URL',()=>{
- assert.throws(()=>officialUrl(electionFromConfig(config,1),'../foo'),/UF inválida/);
+test('proteção contra injeção em codigo de municipio e uf',()=>{
+  const e=electionFromConfig(config,1,'senador');
+  assert.throws(()=>officialUrl(e,'../','senador'),/UF/);
+  assert.throws(()=>officialUrl(e,'pr','senador','../etc'),/municipio/);
+  assert.throws(()=>officialUrl(e,'br','senador'),/Escolha uma UF/);
+});
+test('catálogo de municípios agrupado por UF',()=>{
+  const sample={abr:[{cd:'ac',mu:[{cd:'01120',cdi:'1200013',nm:'Acrelândia'}]},{cd:'pr',mu:[{cd:'75353',cdi:'4106902',nm:'Curitiba'},{cd:'76678',cdi:'4113700',nm:'Londrina'}]}]};
+  assert.deepEqual(parseMunicipalities(sample,'pr').map(x=>x.name),['Curitiba','Londrina']);
+  assert.equal(parseMunicipalities(sample,'ac')[0].code,'01120');
+});
+test('segundo turno so entra em destaque com dados validos',()=>{
+  assert.equal(activeRoundFromResults(null,{state:'awaiting'}),1);
+  assert.equal(activeRoundFromResults(null,{state:'ok',sectionsCounted:0,candidates:[{votes:90}]}),1);
+  assert.equal(activeRoundFromResults(null,{state:'ok',sectionsCounted:10,candidates:[{votes:90}]}),2);
 });
