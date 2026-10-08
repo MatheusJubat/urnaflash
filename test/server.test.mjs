@@ -1,5 +1,6 @@
 import test from 'node:test';import assert from 'node:assert/strict';
 process.env.NODE_ENV='test';const {server}=await import('../server.mjs');
+const {secondRoundUnlocked}=await import('../schedule.mjs');
 let origin;
 test.before(async()=>{await new Promise(r=>server.listen(0,'127.0.0.1',r));origin=`http://127.0.0.1:${server.address().port}`;});
 test.after(async()=>{await new Promise(r=>server.close(r));});
@@ -9,7 +10,7 @@ test('pagina inicial e paginas SEO regionais respondem',async()=>{
  const b=await req('/eleicoes-2026/parana');assert.equal(b.status,200);assert.match(await b.text(),/Eleições 2026 em Paraná/);
 });
 test('rotas de saúde e sitemap funcionam',async()=>{
- assert.equal((await (await req('/api/health')).json()).version,'6.1.0');
+ assert.equal((await (await req('/api/health')).json()).version,'6.3.0');
  const r=await req('/sitemap.xml');assert.equal(r.status,200);assert.match(await r.text(),/eleicoes-2026\/acre/);
 });
 test('API rejeita parametros indevidos',async()=>{
@@ -37,4 +38,40 @@ test('API de governador exige UF e cartões acessíveis constam no HTML',async()
  const invalid=await req('/api/governor-status?uf=br');assert.equal(invalid.status,400);
  const html=await (await req('/')).text();
  for(const id of ['id="stateRaceCard"','id="stateRaceButton"','id="stateRaceSummary"','id="stateRaceSummaryButton"'])assert.ok(html.includes(id),id);
+});
+
+
+test('busca nacional destaca capitais de cinco regioes sem substituir busca livre', async()=>{
+ const html=await (await req('/')).text();
+ for(const pair of ['Manaus|am','Salvador|ba','Goiânia|go','São Paulo|sp','Porto Alegre|rs']){
+   const [capital,uf]=pair.split('|');
+   assert.ok(html.includes(`data-capital="${capital}" data-uf="${uf}"`),pair);
+ }
+ assert.ok(html.includes('placeholder="Ex.: São Paulo, Salvador ou Manaus"'));
+ assert.ok(!html.includes('Ex.: Carambeí, Curitiba, Campinas'));
+ const js=await (await req('/app.js')).text();
+ assert.ok(js.includes('STATE_CAPITALS'));
+ assert.ok(js.includes('queryCities(true,btn.dataset.uf,true)'));
+ assert.ok(js.includes("$('#explorerSearch').placeholder='Ex.: '"));
+});
+
+test('botao do segundo turno fica clicavel para testes e mostra aviso de previa',async()=>{
+  const html=await (await req('/')).text();
+  const button=html.match(/<button[^>]+data-round="2"[^>]*>/)?.[0];
+  assert.ok(button,'botão do segundo turno existe');
+  assert.doesNotMatch(button,/\sdisabled(?:\s|=|>)/,'botão não pode estar desabilitado');
+  assert.match(html,/Prévia disponível para testar|Você já pode explorar a prévia/);
+  const js=await (await req('/app.js')).text();
+  assert.match(js,/manualTurn=\['1','2'\]\.includes\(params\.get\('turno'\)\)/,'link ?turno=2 acessível antes da data');
+});
+
+test('API de prévia do segundo turno não fornece votos anteriores à eleição',async()=>{
+  if(secondRoundUnlocked())return; // A partir de 25/10, a API consulta as fontes oficiais.
+  const result=await (await req('/api/results?round=2&uf=br&office=presidente')).json();
+  assert.equal(result.preview,true);assert.equal(result.state,'awaiting');
+  assert.ok(!result.candidates?.length);
+  const stateMap=await (await req('/api/map?round=2')).json();
+  assert.equal(stateMap.preview,true);assert.deepEqual(stateMap.states,[]);
+  const auto=await (await req('/api/auto')).json();
+  assert.equal(auto.recommendedRound,1,'o primeiro turno segue padrão antes do dia 25');
 });

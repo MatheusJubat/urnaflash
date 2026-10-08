@@ -162,3 +162,12 @@ button:disabled{opacity:.42;cursor:not-allowed}
 .race-summary[hidden]{display:none}.race-summary strong{font-size:17px;line-height:1.4}.race-summary p{margin:5px 0 0;color:var(--muted);line-height:1.5;font-size:14px}
 .race-summary .button{white-space:normal;min-height:52px;flex-shrink:0}
 @media(max-width:800px){.race-card{padding:16px}.race-summary{flex-direction:column;align-items:stretch;padding:16px}.race-summary .button{width:100%}}
+
+/* UrnaFlash 6.2 — atalhos nacionais de capitais, acessíveis em telas pequenas */
+.capital-shortcuts{display:grid;gap:9px;margin-top:15px}
+.capital-shortcuts-title{font-size:13px;color:var(--muted);font-weight:750}
+.capital-shortcuts-list{display:flex;flex-wrap:wrap;gap:8px}
+.capital-shortcut{min-height:44px;display:inline-flex;gap:7px;align-items:center;justify-content:center;padding:9px 12px;background:var(--soft);color:var(--ink);font-size:14px;font-weight:750;border:1px solid var(--line);border-radius:999px;white-space:nowrap}
+.capital-shortcut small{font-size:11px;color:var(--muted);font-weight:800}
+.capital-shortcut:hover,.capital-shortcut:focus-visible{background:var(--blue-soft);border-color:var(--blue);color:var(--blue)}
+@media(max-width:700px){.capital-shortcuts-list{gap:7px}.capital-shortcut{font-size:14px;min-height:46px;padding:9px 13px}}

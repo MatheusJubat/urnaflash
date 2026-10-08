@@ -2,6 +2,7 @@
 const $=selector=>document.querySelector(selector);
 const STATES=[['ac','Acre'],['al','Alagoas'],['ap','Amapá'],['am','Amazonas'],['ba','Bahia'],['ce','Ceará'],['df','Distrito Federal'],['es','Espírito Santo'],['go','Goiás'],['ma','Maranhão'],['mt','Mato Grosso'],['ms','Mato Grosso do Sul'],['mg','Minas Gerais'],['pa','Pará'],['pb','Paraíba'],['pr','Paraná'],['pe','Pernambuco'],['pi','Piauí'],['rj','Rio de Janeiro'],['rn','Rio Grande do Norte'],['rs','Rio Grande do Sul'],['ro','Rondônia'],['rr','Roraima'],['sc','Santa Catarina'],['sp','São Paulo'],['se','Sergipe'],['to','Tocantins']];
 const STATE_NAMES=Object.fromEntries([['br','Brasil'],...STATES]);
+const STATE_CAPITALS={ac:'Rio Branco',al:'Maceió',ap:'Macapá',am:'Manaus',ba:'Salvador',ce:'Fortaleza',df:'Brasília',es:'Vitória',go:'Goiânia',ma:'São Luís',mt:'Cuiabá',ms:'Campo Grande',mg:'Belo Horizonte',pa:'Belém',pb:'João Pessoa',pr:'Curitiba',pe:'Recife',pi:'Teresina',rj:'Rio de Janeiro',rn:'Natal',rs:'Porto Alegre',ro:'Porto Velho',rr:'Boa Vista',sc:'Florianópolis',sp:'São Paulo',se:'Aracaju',to:'Palmas'};
 const SLUGS={ac:'acre',al:'alagoas',ap:'amapa',am:'amazonas',ba:'bahia',ce:'ceara',df:'distrito-federal',es:'espirito-santo',go:'goias',ma:'maranhao',mt:'mato-grosso',ms:'mato-grosso-do-sul',mg:'minas-gerais',pa:'para',pb:'paraiba',pr:'parana',pe:'pernambuco',pi:'piaui',rj:'rio-de-janeiro',rn:'rio-grande-do-norte',rs:'rio-grande-do-sul',ro:'rondonia',rr:'roraima',sc:'santa-catarina',sp:'sao-paulo',se:'sergipe',to:'tocantins'};
 const IBGE_CODES={ac:'12',al:'27',ap:'16',am:'13',ba:'29',ce:'23',df:'53',es:'32',go:'52',ma:'21',mt:'51',ms:'50',mg:'31',pa:'15',pb:'25',pr:'41',pe:'26',pi:'22',rj:'33',rn:'24',rs:'43',ro:'11',rr:'14',sc:'42',sp:'35',se:'28',to:'17'};
 const IBGE_TO_UF=Object.fromEntries(Object.entries(IBGE_CODES).map(([uf,num])=>[num,uf]));
@@ -15,7 +16,7 @@ let round=1,office='presidente',uf='br',municipality='',cityName='',manualTurn=f
 let resultsSequence=0,mapSequence=0,statesData={},geoFeatures=null,mapRound=1,cityCache={},refreshTimer;
 let cityGeoFeatures=null,cityGeoUF='',cityVoteCache=new Map();
 let explorerOpenedFrom=null,explorerLoadSequence=0,latestResult=null,viewZoom=1,mapViewBox=null,ignoreNextMapClick=false;
-let secondUnlocked=false,nationalSequence=0,latestNational=null,governorSequence=0,governorSituation=null;
+let electionDayStarted=false,nationalSequence=0,latestNational=null,governorSequence=0,governorSituation=null;
 const readStore=(key,defaultValue)=>{try{return localStorage.getItem(key)||defaultValue;}catch{return defaultValue;}};
 const writeStore=(key,val)=>{try{localStorage.setItem(key,val);}catch{}};
 function setTheme(theme){const isDark=theme==='dark';document.documentElement.dataset.theme=isDark?'dark':'light';$('#themeToggle').setAttribute('aria-pressed',String(isDark));$('#themeToggle').setAttribute('aria-label',isDark?'Ativar modo claro':'Ativar modo escuro');$('#themeIcon').textContent=isDark?'☀':'☾';$('#themeLabel').textContent=isDark?'Modo claro':'Modo escuro';writeStore('urnaflash-theme',theme);}
@@ -28,11 +29,15 @@ function resetCandidateList(){$('#electionOutcome').hidden=true;allCandidates=fa
   for(const [key,txt] of [['progressPercent','—'],['validVotes','—'],['lastUpdated','—'],['sectionCounts','Sem informação'],['progressText','Sem informação']])$('#'+key).textContent=txt;
   $('#progressBar').style.width='0%';}
 function dateInBrasilia(){const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());const pick=t=>parts.find(p=>p.type===t)?.value;return `${pick('year')}-${pick('month')}-${pick('day')}`;}
-function updateUnlockStatus(enabled){
-  secondUnlocked=enabled;
-  const btn=$('#turnButtons [data-round="2"]');btn.disabled=!enabled;
-  btn.querySelector('small').textContent=enabled?'25 de outubro':'25 de outubro · Em breve';
-  $('#roundUnlockHint').textContent=enabled?'Segundo turno liberado. Os números aparecem apenas depois de publicados pelo TSE.':'O 2º turno será liberado automaticamente em 25/10, no horário de Brasília.';
+function updateUnlockStatus(dayStarted){
+  electionDayStarted=dayStarted;
+  const btn=$('#turnButtons [data-round="2"]');btn.disabled=false;
+  btn.querySelector('small').textContent=dayStarted?'25 de outubro':'25 de outubro · Prévia';
+  $('#roundUnlockHint').textContent=dayStarted?'Segundo turno disponível. Os votos só aparecem após publicação oficial do TSE.':'Prévia disponível para testar o 2º turno. A votação ocorre em 25/10 e não há apuração oficial para mostrar antes disso. Na data, a página abrirá neste turno automaticamente.';
+  renderAutoStatus();
+}
+function renderAutoStatus(){
+  $('#autoStatus').textContent=electionDayStarted?'2º turno disponível · aguardando dados oficiais':round===2?'Prévia do 2º turno · sem votos oficiais':'1º turno disponível · prévia do 2º turno liberada';
 }
 function populateOffices(){
   if(round===2&&!['presidente','governador'].includes(office))office='presidente';
@@ -49,18 +54,18 @@ function updateHeadings(){populateOffices();
   $('#mapRoundLabel').textContent=round+'º turno';
   const title=cityName&&municipality?`${cityName} (${uf.toUpperCase()})`:STATE_NAMES[uf]||'Brasil';
   $('#officeCaption').textContent=OFFICES[office].toUpperCase();$('#electionHeading').textContent=`${round}º turno · ${title}`;
-  $('#resultsSubtitle').textContent=municipality?'Votos recebidos neste município conforme o TSE':office==='senador'?'Duas vagas de senador em disputa por estado':'Resultados oficiais da eleição selecionada';
+  $('#resultsSubtitle').textContent=round===2&&!electionDayStarted?'Prévia de navegação · sem apuração oficial até 25 de outubro':municipality?'Votos recebidos neste município conforme o TSE':office==='senador'?'Duas vagas de senador em disputa por estado':'Resultados oficiais da eleição selecionada';
   $('#selectedPlace').textContent=municipality?title:uf==='br'?'Brasil inteiro':STATE_NAMES[uf];
   $('#selectedPlaceHint').textContent=municipality?'Resultado municipal · dados do TSE':uf==='br'?'Busque sua cidade acima ou escolha um estado no mapa.':'Resultado estadual · clique no mapa para trocar.';
   $('#changePlaceBtn').textContent=uf==='br'&&office!=='presidente'?'Escolher estado no mapa':'Buscar outra cidade';
-  $('#heroRound').textContent=round+'º turno';$('#heroTitle').textContent=round===1?'Resultados do 1º turno':'Apuração do 2º turno';
-  $('#heroSubtitle').textContent=round===1?'4 de outubro · Dados oficiais do TSE':'25 de outubro · Acompanhamento oficial';
+  $('#heroRound').textContent=round+'º turno';$('#heroTitle').textContent=round===1?'Resultados do 1º turno':electionDayStarted?'Apuração do 2º turno':'Prévia do 2º turno';
+  $('#heroSubtitle').textContent=round===1?'4 de outubro · Dados oficiais do TSE':electionDayStarted?'25 de outubro · Acompanhamento oficial':'Disponível para testar · votação em 25/10';
   $('#cityCardTitle').textContent=municipality?`Você está vendo ${cityName||'sua cidade'}`:'Sua cidade, sem complicação';
   $('#cityCardDescription').textContent=municipality?`Mostramos os votos de ${OFFICES[office].toLowerCase()} em ${cityName||'seu município'}, ${STATE_NAMES[uf]}. Para trocar de cidade, basta usar a busca no topo.`:'Digite o nome da sua cidade no campo no início da página. Não precisa procurar códigos nem navegar por uma lista enorme.';
   $('#cityMapToggle').disabled=uf==='br';
-  applyURL();
+  renderAutoStatus();applyURL();
 }
-function changeRound(value,manual=true){if(value===2&&!secondUnlocked){toast('Segundo turno disponível a partir de 25 de outubro.');return;}round=value;if(manual)manualTurn=true;
+function changeRound(value,manual=true){if(![1,2].includes(value))return;round=value;if(manual)manualTurn=true;
   updateHeadings();resetCandidateList();refreshResults();refreshMap();}
 function changeOffice(value){if(!OFFICES[value])return;office=value;
   if(office==='deputado-distrital'&&uf!=='df'){office='deputado-estadual';toast('Deputado distrital é exclusivo do Distrito Federal. Selecione DF no mapa.');return;}
@@ -250,10 +255,11 @@ function renderCitySuggestions(items){const root=$('#citySuggestions');root.repl
   });root.hidden=!items.length;$('#cityQuery').setAttribute('aria-expanded',String(!!items.length));
 }
 function showCityFeedback(text){$('#citySearchHelp').textContent=text;}
-async function queryCities(immediate=false){clearTimeout(searchTimer);const q=$('#cityQuery').value.trim();const seq=++citySearchRequest;
+async function queryCities(immediate=false, preferredUF="", autoOpenExact=false){clearTimeout(searchTimer);const q=$('#cityQuery').value.trim();const seq=++citySearchRequest;
   if(q.length<2){renderCitySuggestions([]);showCityFeedback('Digite pelo menos duas letras do nome da cidade.');return;}
   const run=async()=>{showCityFeedback('Procurando cidades...');
-    try{const data=await fetchJson('/api/cities/search?q='+encodeURIComponent(q));if(seq!==citySearchRequest)return;
+    try{const data=await fetchJson('/api/cities/search?q='+encodeURIComponent(q)+(preferredUF?'&uf='+encodeURIComponent(preferredUF):''));if(seq!==citySearchRequest)return;
+      if(autoOpenExact && data.state==='ok'){const exact=(data.cities||[]).find(c=>c.uf===preferredUF&&normalizeName(c.name)===normalizeName(q));if(exact){selectCity(exact);return;}}
       renderCitySuggestions(data.cities||[]);
       if(data.state==='partial')showCityFeedback((data.message||'Busca limitada no momento.')+((data.cities||[]).length?' Selecione a cidade encontrada.':''));
       else showCityFeedback((data.cities||[]).length?`${data.cities.length} opções. Toque na cidade desejada ou use as setas do teclado.`:'Não encontramos essa cidade. Confira a grafia e tente novamente.');
@@ -283,6 +289,11 @@ function setupCitySearch(){
     }else if(event.key==='Enter'){event.preventDefault();if(searchCursor>=0&&searchRows[searchCursor])selectCity(searchRows[searchCursor]);else if(count===1)selectCity(searchRows[0]);else queryCities(true);}
   });
   document.addEventListener('click',event=>{if(!event.target.closest('#busca'))renderCitySuggestions([]);});
+  document.querySelectorAll('.capital-shortcut').forEach(btn=>btn.addEventListener('click',()=>{
+    $('#cityQuery').value=btn.dataset.capital;
+    showCityFeedback('Buscando '+btn.dataset.capital+' nos dados do TSE...');
+    queryCities(true,btn.dataset.uf,true);
+  }));
   $('#lastCityBtn').addEventListener('click',()=>{let saved;try{saved=JSON.parse(localStorage.getItem('urnaflash-last-city')||'null');}catch{}if(saved)selectCity(saved);});
   updateLastCity();
 }
@@ -369,6 +380,7 @@ async function openCityMap(){
   $('#cityMapPanel').setAttribute('role',matchMedia('(max-width:800px)').matches?'dialog':'region');$('#cityMapPanel').setAttribute('aria-modal',String(matchMedia('(max-width:800px)').matches));
   $('#cityMapTitle').textContent='Mapa do '+(selected==='df'?'Distrito Federal':STATE_NAMES[selected]);
   $('#explorerBreadcrumb').textContent=selected.toUpperCase();
+  $('#explorerSearch').placeholder='Ex.: '+(STATE_CAPITALS[selected]||'nome da cidade');
   $('#explorerSearch').value='';$('#explorerSuggestions').hidden=true;$('#explorerSearchStatus').textContent='Digite uma cidade ou toque no mapa.';
   $('#cityMap').replaceChildren(el('p','loading-state','Preparando as cidades e o mapa do estado...'));
   updateExplorerSelection();
@@ -388,11 +400,11 @@ async function checkAutomaticRound(){
   try{const data=await fetchJson('/api/auto');
     updateUnlockStatus(!!data.unlocked);
     const candidate=data.recommendedRound===2?2:1;
-    $('#autoStatus').textContent=data.unlocked?'2º turno liberado · aguardando publicação oficial':'1º turno disponível · 2º turno em 25 de outubro';
     if(!manualTurn&&candidate!==round){changeRound(candidate,false);refreshGovernorSituation();}
+    updateHeadings();
   }catch{const enabled=dateInBrasilia()>='2026-10-25';updateUnlockStatus(enabled);
-    $('#autoStatus').textContent=enabled?'2º turno liberado · consultando TSE':'O segundo turno será liberado em 25 de outubro';
     if(!manualTurn&&round!==(enabled?2:1)){changeRound(enabled?2:1,false);refreshGovernorSituation();}
+    updateHeadings();
   }
 }
 function setupSharing(){
@@ -410,7 +422,7 @@ function init(){setTheme(readStore('urnaflash-theme','light'));$('#themeToggle')
   const path=location.pathname.split('/').filter(Boolean),code=Object.entries(SLUGS).find(([,slug])=>slug===path[1])?.[0];
   uf=code||'br';const params=new URLSearchParams(location.search);
   const unlocked=dateInBrasilia()>='2026-10-25';updateUnlockStatus(unlocked);
-  manualTurn=params.get('turno')==='1'||(unlocked&&params.get('turno')==='2');round=manualTurn?(params.get('turno')==='2'?2:1):(unlocked?2:1);
+  manualTurn=['1','2'].includes(params.get('turno'));round=manualTurn?(params.get('turno')==='2'?2:1):(unlocked?2:1);
   office=OFFICES[params.get('cargo')]?params.get('cargo'):'presidente';municipality=/^\d{5}$/.test(params.get('municipio')||'')?params.get('municipio'):'';
   if(municipality){cityName=uf==='pr'&&municipality==='75221'?'Carambeí':`Município ${municipality}`;}
   document.querySelectorAll('#turnButtons [data-round]').forEach(btn=>btn.addEventListener('click',()=>changeRound(Number(btn.dataset.round))));

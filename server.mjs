@@ -65,7 +65,7 @@ async function getGeometry(kind,uf=''){
 export const server=http.createServer(async(req,res)=>{
   security(res);const head=req.method==='HEAD';if(req.method!=='GET'&&!head)return json(res,405,{error:'Metodo nao permitido'});
   let url;try{url=new URL(req.url,`http://${req.headers.host||'localhost'}`);}catch{return json(res,400,{error:'URL invalida'},head);}
-  if(url.pathname==='/api/health')return json(res,200,{ok:true,service:'urnaflash',version:'6.1.0'},head);
+  if(url.pathname==='/api/health')return json(res,200,{ok:true,service:'urnaflash',version:'6.3.0'},head);
   if(url.pathname==='/api/status'){
     try{const c=await getElectionConfig();return json(res,200,{source:'TSE',rounds:{'1':!!electionFromConfig(c,1),'2':!!electionFromConfig(c,2)},checkedAt:new Date().toISOString()},head);}catch{return json(res,503,{error:'Fonte TSE indisponivel'},head);}
   }
@@ -84,11 +84,16 @@ export const server=http.createServer(async(req,res)=>{
     const round=Number(url.searchParams.get('round')||1),office=url.searchParams.get('office')||'presidente';
     const uf=(url.searchParams.get('uf')||'br').toLowerCase(),municipality=url.searchParams.get('municipality')||'';
     if(![1,2].includes(round)||!getStates().includes(uf)||!OFFICES[office]|| (municipality&&!/^\d{5}$/.test(municipality)))return json(res,400,{state:'invalid',message:'Parametros invalidos'},head);
+    // A prévia antes da votação não consulta arquivos eleitorais futuros nem exibe números de teste.
+    if(round===2&&!secondRoundUnlocked())return json(res,200,{state:'awaiting',round,preview:true,
+      message:'Prévia do segundo turno. A apuração oficial será divulgada em 25/10/2026. Enquanto isso, explore estados, cidades e cargos sem votos simulados.'},head);
     const data=await loadResult({round,uf,office,municipality});
     return json(res,data.state==='invalid'?400:200,data,head);
   }
   if(url.pathname==='/api/map'){
     const round=Number(url.searchParams.get('round')||1);if(![1,2].includes(round))return json(res,400,{state:'invalid'},head);
+    if(round===2&&!secondRoundUnlocked())return json(res,200,{state:'awaiting',round,preview:true,states:[],
+      message:'Prévia do segundo turno: aguardando os resultados oficiais do dia 25/10.'},head);
     return json(res,200,await loadStateMap(round),head);
   }
   if(url.pathname==='/api/cities/search'){
@@ -124,4 +129,4 @@ export const server=http.createServer(async(req,res)=>{
     return send(res,200,bytes,types[path.extname(file)]||'application/octet-stream',head,'public,max-age=300');}
   catch{return json(res,404,{error:'Arquivo nao encontrado'},head);}
 });
-if(process.env.NODE_ENV!=='test')server.listen(PORT,HOST,()=>console.log(`UrnaFlash v6 em ${HOST}:${PORT}`));
+if(process.env.NODE_ENV!=='test')server.listen(PORT,HOST,()=>console.log(`UrnaFlash v6.3 em ${HOST}:${PORT}`));

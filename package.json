@@ -1,6 +1,6 @@
 {
   "name": "urnaflash",
-  "version": "0.6.1",
+  "version": "0.6.3",
   "private": true,
   "type": "module",
   "description": "UrnaFlash — painel eleitoral 2026, mapas estaduais, cargos e municipios, dados oficiais TSE",
