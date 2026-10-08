@@ -51,10 +51,10 @@ test('ao trocar de município apenas a seleção ativa muda',()=>{
   assert.equal(paths['11111'].getAttribute('data-selected'),'true');
   assert.equal(paths['22222'].getAttribute('fill'),'var(--gray)');
 });
-test('cores de votação de duas cidades consultadas são exibidas somente no modo opcional',()=>{
+test('o modo único mantém outros municípios neutros mesmo que tenham votos em cache',()=>{
   const paths=drawFixture({municipality:'22222',showConsultedCities:true});
-  assert.equal(paths['11111'].getAttribute('fill'),'var(--green)');
-  assert.equal(paths['22222'].getAttribute('fill'),'var(--green)');
+  assert.equal(paths['11111'].getAttribute('fill'),'var(--gray)');
+  assert.equal(paths['22222'].getAttribute('fill'),'var(--blue-soft)');
   assert.equal(paths['11111'].getAttribute('data-selected'),'false');
   assert.equal(paths['22222'].getAttribute('data-selected'),'true');
 });

@@ -1,110 +1,58 @@
-# UrnaFlash 6.5 — Voltar ao Brasil e navegação acessível
+# UrnaFlash 6.6 — mapa simples, resultado no primeiro clique
 
-## Novo comportamento
+Portal responsivo de acompanhamento das eleições de 2026, com dados públicos do TSE e mapas geográficos do IBGE. Este projeto é independente e **não** representa a Justiça Eleitoral.
 
-- **Brasil inteiro é a visão sem filtros geográficos:** ao desmarcar o estado ou a cidade, o portal retorna ao Brasil, limpa campos de seleção e mostra resultado nacional para presidente.
-- **Mesmo estado novamente:** toca no estado já selecionado no mapa ou lista e volta ao Brasil.
-- **Mesma cidade novamente:** toca no município já selecionado no mapa do estado e volta ao Brasil.
-- **Voltar ao Brasil:** botão no explorador estadual e no painel de resultados. **Limpar seleção** junto aos resultados e no campo principal de busca.
-- **F5/atualizar página:** qualquer cidade ou estado aberto volta ao Brasil; o turno segue a regra do calendário de Brasília ou o parâmetro explícito `?turno=2`.
-- **Links compartilhados:** uma URL direta para estado/cidade ainda abre a região no primeiro acesso; ao atualizar a página, a seleção geográfica é limpa.
-- **Acessibilidade:** botões grandes, foco visível para teclado, avisos para leitores de tela, estados selecionados identificados por texto/ARIA e opção de limpar seleção sem interagir com mapa pequeno.
-- **Turnos:** a prévia do segundo turno antes de 25/10, a virada automática no dia 25 e os dados oficiais seguem como na v6.4. Não são exibidos números fictícios.
-- Ao voltar ao Brasil, o cargo volta a **presidente**, pois governador e deputados são disputas estaduais. As preferências de tema são preservadas.
+## Novidades de navegação
 
-## Publicação
+- **Brasil é a visão inicial**. O resumo acima do mapa mostra a apuração da presidência no país.
+- **Toque em um estado** (no mapa ou na lista): o resumo muda imediatamente para o estado selecionado, com candidato à frente, votos recebidos, progresso da totalização de seções e seções restantes. A seleção também abre o mapa municipal do estado.
+- **Toque novamente no estado escolhido**: limpa estado e cidade e retorna ao Brasil. É possível também usar o botão **Voltar ao Brasil**.
+- **Toque em outro estado**: substitui o resumo e o mapa municipal pelos do estado novo.
+- **Siglas das UFs no mapa nacional**, por exemplo PR, SP e RJ. Se a malha geográfica do IBGE não estiver disponível, a alternativa em mosaico mantém as mesmas siglas. Estados pequenos também estão disponíveis na lista acessível.
+- **Mapa dos municípios mais limpo**: a cidade escolhida recebe contorno azul; as demais ficam neutras. **Não há mais** botão de alternar cores, legenda de seleção ou exibição de múltiplas cidades coloridas.
+- **No celular**, o explorador estadual ocupa a tela e começa com o resumo presidencial do estado, seguido do mapa e da busca de cidade. Botão grande de voltar sempre visível.
+- **F5/atualização** limpa o recorte geográfico e volta ao Brasil, mantendo a regra de turno; links compartilhados diretos continuam sendo interpretados na abertura inicial.
 
-1. Extraia o ZIP e faça upload dos arquivos **internos** na raiz do repositório `urnaflash` (GitHub), substituindo a versão anterior.
-2. Faça commit na branch `main`; o Render atualizará o mesmo Web Service se Auto Deploy estiver ativo.
-3. Confirme as rotas de teste `/api/health`, `/api/results?round=1&uf=br&office=presidente` e `/api/map?round=1`.
-4. Teste selecionar Paraná no mapa, voltar ao Brasil, selecionar cidade, limpar seleção e dar F5 com a cidade selecionada.
-5. Em caso de CSS antigo em cache, use Ctrl+Shift+R no desktop ou aba anônima no celular.
+## Informações eleitorais
 
-Comandos Render: Build `npm install --ignore-scripts`; Start `npm start`; Node >=20.
+- O mapa nacional e o resumo contextual mostram **presidência**. Governador, senador, deputado federal e deputado estadual/distrital ficam no painel de resultados.
+- Primeiro turno de 04/10/2026 disponível; segundo turno liberado em modo **prévia** antes de 25/10, sem votos fabricados. Em 25/10, o segundo turno torna-se a visualização inicial, pelo relógio de Brasília.
+- Apuração parcial não significa resultado definitivo. Um candidato só recebe o título de eleito quando o arquivo oficial o identifica e os dados indicam totalização encerrada.
+- Percentuais de **seções totalizadas** não representam percentuais de **votos apurados**. As porcentagens dos candidatos referem-se aos votos válidos contabilizados na fonte.
+- Cidades são carregadas sob demanda para não sobrecarregar a API do TSE ou o Render.
+- Atualização automática a cada minuto enquanto a página está visível. Cache no servidor reduz consultas repetidas ao TSE.
+- Contato de publicidade por e-mail `contatournaflash@gmail.com`, via ação de abrir cliente de e-mail.
 
-## Fontes e limitações
+## Rodar no computador
 
-O backend permanece dependente dos arquivos oficiais de resultados do TSE e dos limites do IBGE. Consulta real à CDN, inclusive no dia do segundo turno, precisa de validação no Render. A porcentagem de seções totalizadas não é percentual de votos apurados.
-
-# UrnaFlash 6.4 — Seleção clara de município no mapa estadual
-
-Site independente de acompanhamento dos resultados das eleições brasileiras de 2026. Funciona em navegador, responsivo para celular e desktop. **Nenhum resultado simulado é enviado ao visitante.**
-
-## Correção da versão 6.4 — mapa municipal
-
-- **Problema anterior:** ao consultar várias cidades em sequência, todas as cidades visitadas ficavam pintadas com a cor do candidato à frente. Parecia que o mapa selecionava várias cidades ao mesmo tempo.
-- **Correção:** por padrão, **somente uma cidade aparece selecionada**, com preenchimento suave e contorno azul mais visível. Cidades anteriores voltam ao cinza.
-- **Opção de comparação:** o botão **Ver cores das cidades consultadas** exibe opcionalmente as cores dos líderes presidenciais das cidades visitadas nesta sessão. O contorno azul continua mostrando qual é a cidade ativa.
-- A cidade é destacada **imediatamente ao clicar ou pesquisar**, mesmo antes de a consulta dos votos retornar.
-- Não confundir as cores do modo de comparação com previsão eleitoral ou confirmação de eleitos.
-- O restante do portal, o segundo turno e o modo mobile foram preservados.
-
-## Novidade da 6.3: segundo turno aberto para testar agora
-
-- O botão **2º turno** pode ser clicado antes de 25/10/2026, com aviso explícito de **PRÉVIA**, sem votos oficiais nem percentuais inventados. O mapa de estados fica neutro.
-- É possível abrir e compartilhar uma prévia com `?turno=2`; por exemplo, `https://SEU-SITE.onrender.com/?turno=2`.
-- Antes de 25/10, a API do 2º turno devolve `state: "awaiting"` com explicação, sem consultar arquivos oficiais futuros. O primeiro turno continua normal.
-- **Virada automática preservada:** antes de 25/10 a página abre no 1º turno; a partir de 00h de 25/10 (Brasília) abre no 2º, com números apenas quando publicados pelo TSE. A escolha manual de turno é respeitada até a próxima navegação/recarregamento se estiver na URL.
-- **Para testar a experiência visual:** entre no botão 2º turno, clique no mapa, busque um estado e município e volte ao 1º turno. A apuração real só pode ser testada com a fonte oficial após a publicação.
-
-## Melhorias da versão 6.2
-
-- Exemplos da busca nacional agora usam capitais de várias regiões, sem priorizar municípios específicos.
-- Cinco atalhos tocáveis: Manaus (Norte), Salvador (Nordeste), Goiânia (Centro-Oeste), São Paulo (Sudeste) e Porto Alegre (Sul). Ao tocar, a busca consulta o catálogo oficial do TSE e abre diretamente a capital se o registro exato estiver disponível.
-- No mapa estadual, o exemplo do campo de pesquisa é a capital da UF selecionada, como Curitiba no Paraná ou Recife em Pernambuco.
-- A busca continua funcionando para **todos os municípios**, sem restrição a capitais.
-- Botões acessíveis, com alvos de toque de pelo menos 44px e contraste no tema claro e escuro.
-
-## O que mudou
-
-- Atalho de Governador em cada estado: mostra situação do 1º turno, consulta o segundo quando houver, nunca presume segundo turno em todos os estados; abre resultado com um toque.
-- Visual de apuração com três estados: aguardando, parcial e totalização encerrada.
-- Indicador nacional de percentual de seções totalizadas, total e seções restantes.
-- Estados clicáveis coloridos por candidato à frente, com percentual das seções totalizadas, votos do líder e contagem de seções restantes. A lista lateral traz os detalhes acessíveis, inclusive para estados muito pequenos.
-- Resultado municipal com progresso e seções restantes (somente cidade consultada). O mapa municipal não baixa continuamente resultados de todas as cidades.
-- Segundo turno disponível como **prévia sem votos** antes de **25/10/2026 no fuso America/Sao_Paulo**. A partir de 00:00 em Brasília ele se torna padrão e pode mostrar “aguardando” até a divulgação oficial. O 1º turno segue acessível.
-- Candidato só aparece como **eleito** quando o arquivo de dados oficial marca eleito **e** a abrangência está com totalização encerrada (`and=f`). Quando houver 100% sem confirmação, o texto evita atribuir vitória.
-- Atualização automática a cada 60 segundos enquanto a aba está visível; consultas e mapa de estados compartilhados no cache do servidor.
-- Nova API `/api/governor-status?uf=pr` (consulta sob demanda) e atalho para visualizar o governador do estado sem percorrer filtros. Quando eleito no 1º turno, o botão abre os votos do 1º, sem sugerir disputa inexistente.
-- O mapa nacional continua dedicado aos votos presidenciais para não misturar candidatos.
-- Contato comercial: `contatournaflash@gmail.com`.
-
-**Métrica importante:** o percentual exibido na barra de totalização refere-se às **seções eleitorais totalizadas**, não ao percentual exato de eleitores/votos que ainda faltam. A porcentagem exibida ao lado de um candidato é sua proporção de votos válidos divulgados no arquivo do TSE. Essas porcentagens **não devem ser confundidas**.
-
-## Publicar atualização no Render
-
-1. Extraia o ZIP; selecione os arquivos e as pastas extraídos (`package.json`, `server.mjs`, `public/` etc.) e envie-os à **raiz** do mesmo repositório GitHub `urnaflash`. Não crie uma pasta extra dentro da raiz.
-2. Substitua os arquivos existentes no GitHub; confirme commit na `main`. Não é preciso criar outro serviço Render.
-3. O Render deve publicar automaticamente quando o Auto Deploy está habilitado. Linguagem Node, Build `npm install --ignore-scripts`, Start `npm start`.
-4. Teste `/api/governor-status?uf=pr`, `/api/health`, `/api/auto`, `/api/results?round=1&uf=br&office=presidente`, `/api/map?round=1` e resultados municipais usando o código eleitoral devolvido pela busca por cidade.
-5. Como a versão 6 exige substituir o JavaScript, force uma atualização com Ctrl+Shift+R no PC ou abra aba anônima no celular.
-
-## Testes
+Requer **Node.js 20+**. Na raiz do projeto:
 
 ```bash
+npm install --ignore-scripts
 npm test
 npm start
 ```
 
-Para validar também a virada automática de data, os testes incluem instantes UTC que correspondem a 23:59:59 de 24/10 e 00:00 de 25/10 em Brasília.
+Abra `http://localhost:3000`.
 
-## Fonte de dados e cautelas
+## Atualizar a publicação no GitHub e Render
 
-- Fonte oficial: https://resultados.tse.jus.br/oficial/ e documentação https://www.tse.jus.br/eleicoes/informacoes-tecnicas-sobre-a-divulgacao-de-resultados
-- O painel consulta dados nacionais, estaduais e municipais sob demanda. Em caso de falha da fonte, indica indisponibilidade e não cria números.
-- Datas e eleição são descobertas no catálogo oficial `ele-c.json`. A estrutura do 2º turno só poderá ser definitivamente validada após disponibilização oficial dos respectivos arquivos.
-- Não há garantia de tempo real absoluto; há cache e intervalo de polling. O site informa a hora do arquivo oficial quando disponível.
-- Mapa municipal: limites IBGE; **somente a cidade selecionada é destacada por padrão**. A coloração por votos anteriores é opcional e só usa municípios consultados nesta sessão, porque consultar simultaneamente milhares de arquivos violaria boas práticas de consumo de API.
-- O mapa não declara vitória a partir de cores ou porcentagens parciais.
+1. Extraia o ZIP. **Envie o conteúdo**, não a pasta ZIP ou outra subpasta, para a raiz do repositório `urnaflash` já conectado ao Render.
+2. Substitua `public/app.js`, `public/index.html`, `public/styles.css` e os arquivos de servidor/testes quando o GitHub solicitar; confirme o commit na branch `main`.
+3. No Render, mantenha o mesmo **Web Service**. Build Command: `npm install --ignore-scripts`. Start Command: `npm start`. O Auto Deploy deve iniciar a nova publicação.
+4. Confirme `/api/health` (`version: "6.6.0"`) e teste a homepage, o mapa, a troca de estado e a busca por município.
+5. Se o navegador ainda mostrar a interface anterior, use `Ctrl+Shift+R` ou abra em aba anônima.
 
-## Arquivos
+## Verificação e limitações
 
-- `server.mjs`: servidor, proxy, mapas geográficos e rotas.
-- `tse.mjs`: leitura do catálogo e EA20 do TSE, cache e normalização.
-- `schedule.mjs`: calendário de Brasília e verificação de eleito.
-- `public/index.html`, `public/app.js`, `public/styles.css`: interface, mapas, interação.
-- `test/`: testes automatizados de regras, resultados e rotas.
+Os testes do Node.js verificam rotas, interface estática, resumo contextual, lógica de navegação, mapa municipal, turnos e interpretação dos arquivos do TSE. Rodar `npm test` **não verifica** que o TSE está alcançável pelo Render naquele instante. A fonte oficial e a malha do IBGE devem ser testadas no site publicado antes da divulgação pública.
 
-## Observação de produção
+Rotas úteis de teste:
 
-A CDN do TSE não foi acessível a partir deste ambiente de desenvolvimento. Todos os exemplos dos testes de interface são dados **simulados usados apenas para testes locais**. Antes de divulgar, confirme as consultas reais no Render e compare-as com os Resultados oficiais do TSE. O anúncio do dia 25 ocorre apenas **após validação da integração real**.
+- `/api/health`
+- `/api/map?round=1`
+- `/api/results?round=1&uf=br&office=presidente`
+- `/api/results?round=1&uf=pr&office=presidente`
+- `/api/governor-status?uf=pr`
+
+Em qualquer erro de fonte, a UI sinaliza indisponibilidade em vez de inventar resultados.

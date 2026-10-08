@@ -32,23 +32,23 @@ function resetFixture({selected='pr',city='12345',position='Palmeira',chosenOffi
     renderCitySuggestions(){calls.push('suggestions')},showCityFeedback(){calls.push('feedback')},
     updateHeadings(){calls.push('headings')},resetCandidateList(){calls.push('resetCandidates')},
     refreshResults(){calls.push('results')},refreshGovernorSituation(){calls.push('governor')},
-    renderStateList(){calls.push('states')},drawMap(){calls.push('map')},
+    renderStateList(){calls.push('states')},drawMap(){calls.push('map')},renderScopeSummary(){calls.push('summary')},
     announceSelection(msg){calls.push(msg)},
     matchMedia(){return {matches:false}},
     uf:selected,municipality:city,cityName:position,office:chosenOffice,
-    citySearchRequest:0,searchTimer:null,showConsultedCities:true,
+    citySearchRequest:0,searchTimer:null,
   };
-  runInNewContext(resetSource+'\nresetToBrazil({focus:"results"});\nstate={uf,municipality,cityName,office,citySearchRequest,showConsultedCities};',context);
+  runInNewContext(resetSource+'\nresetToBrazil({focus:"results"});\nstate={uf,municipality,cityName,office,citySearchRequest};',context);
   return {state:context.state,calls,elements};
 }
 
 test('limpa município/estado/cargo e mantém a visualização coerente ao voltar ao Brasil',()=>{
   const {state,calls,elements}=resetFixture();
-  assert.deepEqual({...state},{uf:'br',municipality:'',cityName:'',office:'presidente',citySearchRequest:1,showConsultedCities:false});
+  assert.deepEqual({...state},{uf:'br',municipality:'',cityName:'',office:'presidente',citySearchRequest:1});
   assert.equal(elements.get('#cityQuery').value,'');
   assert.equal(elements.get('#stateSearch').value,'');
   assert.equal(elements.get('#explorerSearch').value,'');
-  assert.equal(elements.get('#explorerShowCompared').textContent,'Ver cores das cidades consultadas');
+  assert.ok(calls.includes('summary')); // Atualiza resumo nacional imediatamente
   assert.ok(calls.includes('results'));
   assert.ok(calls.includes('states'));
   assert.ok(calls.includes('map'));

@@ -56,9 +56,9 @@
       </aside>
     </section>
     <section id="mapa" class="section map-section" aria-labelledby="mapTitle">
-      <div class="section-head"><div><span class="eyebrow">MAPA INTERATIVO</span><h2 id="mapTitle" tabindex="-1">Do Brasil à sua cidade</h2><p>Toque ou clique em um estado para explorar suas cidades e consultar os votos. As cores indicam apenas a liderança nos dados publicados.</p></div><span class="source-label">Fonte: TSE · Atualização automática</span></div>
+      <div class="section-head"><div><span class="eyebrow">MAPA INTERATIVO</span><h2 id="mapTitle" tabindex="-1">Do Brasil à sua cidade</h2><p>Toque novamente em um estado selecionado para voltar ao Brasil. <span class="map-help-inline">As siglas identificam as UFs no mapa.</span> Toque ou clique em um estado para explorar suas cidades e consultar os votos. As cores indicam apenas a liderança nos dados publicados.</p></div><span class="source-label">Fonte: TSE · Atualização automática</span></div>
       <div class="national-summary surface" id="nationalSummary" aria-label="Resumo nacional da apuração">
-        <div class="national-heading"><div><span class="eyebrow">PRESIDÊNCIA · BRASIL</span><h3 id="nationalStatus">Buscando atualização do TSE</h3><p id="nationalStatusDetail">Acompanhe o avanço das seções totalizadas em todo o país.</p></div><span class="national-status-chip" id="nationalBadge">Consultando</span></div>
+        <div class="national-heading"><div><span class="eyebrow" id="scopeEyebrow">PRESIDÊNCIA · BRASIL</span><h3 id="nationalStatus">Buscando atualização do TSE</h3><p id="nationalStatusDetail">Acompanhe o avanço das seções totalizadas em todo o país.</p></div><span class="national-status-chip" id="nationalBadge">Consultando</span></div>
         <div class="national-values"><div><span>Seções totalizadas</span><strong id="nationalProgress">—</strong><div class="progress-track"><span id="nationalProgressBar"></span></div></div><div><span>Seções restantes</span><strong id="nationalRemaining">—</strong><small id="nationalSectionTotal">Aguardando dados</small></div><div><span id="nationalLeadLabel">Candidato à frente</span><strong id="nationalLeader">—</strong><small id="nationalLeaderInfo">Resultado informado pelo TSE</small></div></div>
       </div>
       <p id="selectionAnnouncement" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></p>
@@ -78,6 +78,7 @@
         <aside id="cityMapPanel" class="surface state-explorer" role="region" aria-labelledby="cityMapTitle" hidden>
           <div class="explorer-nav"><button id="cityMapClose" type="button" class="explorer-back">← Voltar ao Brasil</button><span class="explorer-step">BRASIL / <span id="explorerBreadcrumb">ESTADO</span></span></div>
           <div class="explorer-heading"><span class="eyebrow">EXPLORE O ESTADO</span><h3 id="cityMapTitle">Mapa dos municípios</h3><p id="cityMapHint">Toque em uma cidade do mapa ou encontre pelo nome.</p></div>
+          <div id="explorerStateVotes" class="explorer-state-votes" aria-live="polite"><span class="eyebrow" id="explorerStateVotesPlace">PRESIDENTE · ESTADO</span><strong id="explorerStateVotesLeader">Consultando dados eleitorais...</strong><p id="explorerStateVotesProgress">Aguardando dados oficiais do TSE.</p></div>
           <div id="stateRaceCard" class="race-card" aria-live="polite">
             <div class="race-head"><span class="race-icon" aria-hidden="true">▣</span><div><span class="eyebrow">GOVERNO DO ESTADO</span><strong id="stateRaceTitle">E o governador?</strong></div></div>
             <p id="stateRaceDescription">Consultando a situação oficial da eleição estadual...</p>
@@ -89,13 +90,9 @@
           <p id="explorerSearchStatus" class="explorer-search-status" role="status" aria-live="polite">Escolha um município no mapa ou pesquise acima.</p>
           <div class="explorer-map-head"><strong>Municípios do estado</strong><div class="explorer-zoom" aria-label="Controles de zoom"><button type="button" id="explorerZoomOut" aria-label="Diminuir zoom" title="Diminuir zoom">−</button><button type="button" id="explorerZoomIn" aria-label="Aumentar zoom" title="Aumentar zoom">+</button><button type="button" id="explorerZoomReset" aria-label="Restaurar zoom" title="Restaurar mapa">⌖</button></div></div>
           <div id="cityMap" class="municipality-map"><p class="loading-state">Selecione um estado.</p></div>
-          <div class="explorer-color-controls">
-            <div class="explorer-key" aria-label="Legenda de seleção de município"><span><i class="explorer-key-selected" aria-hidden="true"></i> Cidade selecionada</span><span><i class="explorer-key-neutral" aria-hidden="true"></i> Demais municípios</span></div>
-            <button type="button" id="explorerShowCompared" class="button secondary" aria-pressed="false" aria-describedby="explorerMapHint">Ver cores das cidades consultadas</button>
-          </div>
-          <p class="explorer-map-note" id="explorerMapHint">Só a cidade selecionada recebe contorno azul. As outras permanecem neutras.</p>
+          <p class="explorer-map-note">Toque em uma cidade para selecioná-la. A cidade escolhida fica com contorno azul; toque novamente para voltar ao Brasil.</p>
           <div id="explorerSelected" class="explorer-selection" hidden><span class="eyebrow">CIDADE SELECIONADA</span><strong id="explorerSelectedName"></strong><p id="explorerSelectedSummary">Consultando dados do TSE...</p><button type="button" id="explorerSeeResult" class="button primary">Ver todos os votos da cidade ↓</button><button type="button" id="explorerClearCity" class="button secondary">✕ Desmarcar cidade e ver Brasil</button></div>
-          <p class="explorer-source">Limites geográficos: IBGE · Votos: TSE. Na opção de cores, cada município consultado pode mostrar quem está à frente para presidente; isso não indica necessariamente vitória oficial. Cidades não consultadas permanecem neutras.</p>
+          <p class="explorer-source">Mapa geográfico: IBGE · Votos: TSE. O contorno azul indica somente a cidade selecionada. Os resultados oficiais aparecem no painel eleitoral.</p>
         </aside>
       </div>
     </section>

@@ -178,14 +178,6 @@ button:disabled{opacity:.42;cursor:not-allowed}
 .state-explorer .municipality-map .geo-city.is-selected,
 .state-explorer .municipality-map .geo-city.is-selected:hover,
 .state-explorer .municipality-map .geo-city.is-selected:focus-visible{stroke:var(--blue);stroke-width:3.5;filter:drop-shadow(0 0 2px rgba(14,96,188,.45));stroke-linejoin:round}
-.explorer-color-controls{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;padding:13px 0 5px}
-.explorer-key{display:flex;gap:14px;align-items:center;flex-wrap:wrap;font-size:13px;font-weight:700;color:var(--muted)}
-.explorer-key i{width:16px;height:16px;display:inline-block;vertical-align:middle;margin-right:4px;border-radius:4px}
-.explorer-key-selected{background:var(--blue-soft);border:3px solid var(--blue)}
-.explorer-key-neutral{background:var(--gray);border:1px solid var(--line)}
-#explorerShowCompared{min-height:46px;font-size:13px;text-align:center;white-space:normal}
-#explorerShowCompared[aria-pressed="true"]{border-color:var(--blue);background:var(--blue-soft);color:var(--ink)}
-@media(max-width:800px){#explorerShowCompared{width:100%;min-height:52px}.explorer-key{width:100%;justify-content:space-between}}
 @media(prefers-reduced-motion:reduce){.state-explorer .municipality-map .geo-city{transition:none}}
 
 /* v6.5: voltar ao Brasil, controles confortáveis no celular e foco visível */
@@ -201,3 +193,17 @@ button:focus-visible,input:focus-visible,a:focus-visible,[tabindex="0"]:focus-vi
 @media(max-width:700px){.clear-selection-link{width:100%;font-size:16px}.selected-actions button{min-height:52px}#allBrazilBtn{order:-1;width:100%;font-weight:800}.explorer-back{font-size:16px;min-height:52px}}
 
 .state-tile.is-selected{outline:3px solid var(--blue);outline-offset:1px;border-radius:8px}
+
+/* UrnaFlash 6.6 · Seleção simples, sem controles de cores adicionais. */
+.explorer-state-votes{padding:17px 18px;border:1px solid var(--line);border-radius:15px;background:var(--blue-soft);display:grid;gap:7px}
+.explorer-state-votes strong{font-size:clamp(17px,1.7vw,21px);font-weight:850;line-height:1.35}
+.explorer-state-votes p{font-size:14px;line-height:1.5;color:var(--muted);margin:0}
+.explorer-map-note{margin:6px 0 2px;font-size:13px;line-height:1.5;color:var(--muted)}
+.geo-state-label{font-size:13px;font-weight:900;letter-spacing:.03em;paint-order:stroke fill;stroke:rgba(13,29,51,.88);stroke-width:3.4px;stroke-linejoin:round;filter:drop-shadow(0 1px 0 rgba(0,0,0,.15))}
+.geo-state-progress{font-size:9px;font-weight:800;stroke:rgba(13,29,51,.93);stroke-width:2.8px}
+#geoMap .geo-state{cursor:pointer}
+#geoMap .geo-state:hover,#geoMap .geo-state:focus-visible{stroke:var(--blue);stroke-width:2.7;outline:none}
+#geoMap .geo-state[data-selected="true"]{stroke:var(--blue);stroke-width:3.5}
+#nationalSummary{scroll-margin-top:110px}
+#explorerStateVotes[hidden]{display:none}
+@media(max-width:800px){.explorer-state-votes{padding:17px}.geo-state-label{font-size:14px}.national-values>div>strong{font-size:clamp(1.25rem,5vw,1.6rem)}}
