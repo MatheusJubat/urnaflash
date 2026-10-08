@@ -22,11 +22,18 @@ export const toNum = value => {
 const cache = new Map();
 const CONFIG_TTL=5*60_000, RESULTS_TTL=30_000, MUNICIPALITIES_TTL=12*60*60_000;
 const REQUEST_TIMEOUT=11_000;
+// Limite de memória: a hospedagem gratuita não deve guardar cada cidade consultada para sempre.
+function capResultsCache(){
+  if(cache.size<=650)return;
+  const removable=[...cache.entries()].filter(([,entry])=>!entry.inflight)
+    .sort((a,b)=>(a[1].fetchedAt||0)-(b[1].fetchedAt||0));
+  for(const [url] of removable){if(cache.size<=480)break;cache.delete(url);}
+}
 async function readCached(url,ttl){
   const now=Date.now();let entry=cache.get(url);
   if(entry?.value && now-entry.fetchedAt<ttl)return {value:entry.value,stale:false};
   if(entry?.inflight)return entry.inflight;
-  if(!entry){entry={value:null,fetchedAt:0,etag:'',modified:'',inflight:null};cache.set(url,entry);}
+  if(!entry){entry={value:null,fetchedAt:0,etag:'',modified:'',inflight:null};cache.set(url,entry);capResultsCache();}
   entry.inflight=(async()=>{
     try{
       const h={Accept:'application/json'};
@@ -101,7 +108,7 @@ export function normalizeTseResult(raw,{round,uf,office,municipality=''}){
     round,office,uf:uf.toUpperCase(),municipality,
     source:'TSE · EA20',generatedAt:raw.dg&&raw.hg?`${raw.dg} ${raw.hg}`:null,
     progress:Math.max(0,Math.min(100,Number(progress.toFixed(2)))),
-    sectionsCounted:counted,sectionsTotal:total,
+    sectionsCounted:counted,sectionsTotal:total,sectionsRemaining:total>0?Math.max(0,total-counted):null,
     validVotes:toNum(raw.v?.tvn??raw.v?.vv),totalVotes:toNum(raw.v?.tv),
     blankVotes:toNum(raw.v?.vb),nullVotes:toNum(raw.v?.vn),
     finished:raw.and==='f',candidates,
@@ -115,6 +122,13 @@ export async function loadResult({round=1,uf='br',office='presidente',municipali
   if(role.code==='8'&&uf!=='df')return {state:'invalid',message:'Deputado distrital e exclusivo do DF.'};
   if(role.code==='7'&&uf==='df')return {state:'invalid',message:'No DF, selecione deputado distrital.'};
   if(municipality && (!/^[0-9]{5}$/.test(municipality)||uf==='br'))return {state:'invalid',message:'Municipio invalido.'};
+  if(round===2 && office==='governador'){
+    const first=await loadResult({round:1,uf,office:'governador'});
+    if(['ok','stale'].includes(first.state)&&first.finished){
+      const elected=first.candidates?.find(c=>c.elected);
+      if(elected)return {state:'not-applicable',message:`${elected.name} aparece como eleito governador no primeiro turno segundo o TSE. Não há apuração de segundo turno para governador neste estado.`,firstRoundWinner:{name:elected.name,party:elected.party}};
+    }
+  }
   let config;
   try{config=await getElectionConfig();}catch{return {state:'unavailable',message:'Configuração de eleições do TSE indisponível.'};}
   const election=electionFromConfig(config,round,office);
@@ -128,22 +142,63 @@ export async function loadResult({round=1,uf='br',office='presidente',municipali
       ...(stale?{message:'Última versão oficial em cache; atualização indisponível.'}:{})};
   }catch{return {state:'unavailable',message:'Dados oficiais ainda indisponíveis para esta seleção.'};}
 }
+// Situação da eleição para governador, consultada apenas no estado selecionado.
+// Não presumir segundo turno porque a data chegou ou porque o arquivo de um estado retorna 404.
+export function governorSituationFromResults(first,second=null,{unlocked=false}={}){
+  const valid=value=>['ok','stale'].includes(value?.state);
+  if(!valid(first))return {state:'unknown',message:'Não foi possível confirmar a situação do governo estadual no TSE.'};
+  const elected=first.finished?first.candidates?.find(c=>c.elected):null;
+  if(elected)return {state:'decided-first',round:1,person:{name:elected.name,party:elected.party,number:elected.number},
+    message:`${elected.name} aparece como eleito no 1º turno, conforme arquivo oficial do TSE.`};
+  if(!first.finished)return {state:'checking-first',round:1,message:'A totalização do primeiro turno ainda não consta como encerrada.'};
+  if(!unlocked)return {state:'pending',round:1,message:'Nenhum eleito confirmado neste arquivo do 1º turno. Verifique a situação no TSE antes do dia 25.'};
+  if(valid(second)){
+    const winner=second.finished?second.candidates?.find(c=>c.elected):null;
+    if(winner)return {state:'decided-second',round:2,person:{name:winner.name,party:winner.party,number:winner.number},
+      progress:second.progress,message:`${winner.name} aparece como eleito no 2º turno, conforme arquivo oficial do TSE.`};
+    return {state:second.finished?'counted-second':'counting-second',round:2,progress:second.progress,
+      leader:second.candidates?.[0]?.name||null,message:second.finished?'Seções totalizadas; aguardando confirmação oficial do eleito.':`Apuração do governo estadual em andamento: ${second.progress.toLocaleString('pt-BR')}% das seções totalizadas.`};
+  }
+  return {state:'pending',round:2,message:'Ainda não foram encontrados votos oficiais do segundo turno para governador neste estado. A disputa pode não ocorrer aqui.'};
+}
+export async function loadGovernorSituation(uf,{unlocked=false}={}){
+  if(!STATES.has(uf)||uf==='br')return {state:'invalid',message:'Selecione um estado.'};
+  const first=await loadResult({round:1,uf,office:'governador'});
+  const firstSituation=governorSituationFromResults(first,null,{unlocked:false});
+  if(!unlocked||firstSituation.state==='decided-first'||firstSituation.state==='unknown'||firstSituation.state==='checking-first')return firstSituation;
+  const second=await loadResult({round:2,uf,office:'governador'});
+  return governorSituationFromResults(first,second,{unlocked:true});
+}
+// Compartilhamos um snapshot de mapa entre visitantes. Reduz carga no Render e na CDN do TSE.
+const mapCache=new Map();
+export function stateMapRecord(uf,d){
+  const valid=['ok','stale'].includes(d.state)&&d.candidates?.[0]?.votes>0;
+  const first=valid?d.candidates[0]:null,second=valid?d.candidates[1]:null;
+  return {uf,state:d.state,progress:valid?d.progress:null,finished:valid&&!!d.finished,
+    sectionsCounted:valid?d.sectionsCounted:null,sectionsTotal:valid?d.sectionsTotal:null,
+    sectionsRemaining:valid?d.sectionsRemaining:null,generatedAt:d.generatedAt||null,
+    leader:first?{name:first.name,party:first.party,number:first.number,percentage:first.percentage,votes:first.votes}:null,
+    second:second?{name:second.name,number:second.number,percentage:second.percentage,votes:second.votes}:null,
+    leadVotes:first&&second?Math.max(0,first.votes-second.votes):null};
+}
 export async function loadStateMap(round){
   if(![1,2].includes(round))return {state:'invalid',message:'Turno inválido'};
-  const statuses=[];
-  // Limitar concorrencia para respeitar a infraestrutura do TSE.
-  let i=0;async function worker(){while(i<STATE_CODES.length){const uf=STATE_CODES[i++];
-    const d=await loadResult({round,uf,office:'presidente'});
-    statuses.push({uf,state:d.state,progress:d.progress||0,finished:!!d.finished,
-      generatedAt:d.generatedAt||null,
-      leader:['ok','stale'].includes(d.state)&&d.candidates?.[0]?.votes>0?{
-        name:d.candidates[0].name,party:d.candidates[0].party,number:d.candidates[0].number,
-        percentage:d.candidates[0].percentage,votes:d.candidates[0].votes
-      }:null});
-  }}
-  await Promise.all(Array.from({length:5},worker));
-  statuses.sort((a,b)=>STATE_CODES.indexOf(a.uf)-STATE_CODES.indexOf(b.uf));
-  return {state:'ok',round,states:statuses,checkedAt:new Date().toISOString()};
+  const prev=mapCache.get(round),now=Date.now();
+  if(prev?.value && now-prev.at<60_000)return prev.value;
+  if(prev?.inflight)return prev.inflight;
+  const task=(async()=>{
+    const statuses=new Array(STATE_CODES.length);
+    let i=0;async function worker(){while(i<STATE_CODES.length){const index=i++,uf=STATE_CODES[index];
+      const d=await loadResult({round,uf,office:'presidente'});
+      statuses[index]=stateMapRecord(uf,d);
+    }}
+    await Promise.all(Array.from({length:5},worker));
+    const value={state:'ok',round,states:statuses,checkedAt:new Date().toISOString()};
+    mapCache.set(round,{at:Date.now(),value});return value;
+  })();
+  mapCache.set(round,{value:prev?.value,at:prev?.at||0,inflight:task});
+  try{return await task;}catch(err){if(prev?.value)return prev.value;throw err;}
+  finally{const entry=mapCache.get(round);if(entry?.inflight===task)mapCache.set(round,{value:entry.value,at:entry.at});}
 }
 // EA12: municípios podem aparecer agrupados por abrangência/UF.
 // Percorrer a árvore preservando o código da UF para não retornar somente o primeiro estado.

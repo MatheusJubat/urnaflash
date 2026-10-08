@@ -46,12 +46,17 @@
     </section>
     <section id="mapa" class="section map-section" aria-labelledby="mapTitle">
       <div class="section-head"><div><span class="eyebrow">MAPA INTERATIVO</span><h2 id="mapTitle">Do Brasil à sua cidade</h2><p>Toque ou clique em um estado para explorar suas cidades e consultar os votos. As cores indicam apenas a liderança nos dados publicados.</p></div><span class="source-label">Fonte: TSE · Atualização automática</span></div>
+      <div class="national-summary surface" id="nationalSummary" aria-label="Resumo nacional da apuração">
+        <div class="national-heading"><div><span class="eyebrow">PRESIDÊNCIA · BRASIL</span><h3 id="nationalStatus">Buscando atualização do TSE</h3><p id="nationalStatusDetail">Acompanhe o avanço das seções totalizadas em todo o país.</p></div><span class="national-status-chip" id="nationalBadge">Consultando</span></div>
+        <div class="national-values"><div><span>Seções totalizadas</span><strong id="nationalProgress">—</strong><div class="progress-track"><span id="nationalProgressBar"></span></div></div><div><span>Seções restantes</span><strong id="nationalRemaining">—</strong><small id="nationalSectionTotal">Aguardando dados</small></div><div><span id="nationalLeadLabel">Candidato à frente</span><strong id="nationalLeader">—</strong><small id="nationalLeaderInfo">Resultado informado pelo TSE</small></div></div>
+      </div>
       <div class="map-grid" id="mapGrid">
         <div class="surface map-panel">
           <div class="panel-head"><div class="round-pill"><span id="mapRoundLabel">1º turno</span><span class="line-divider"></span><span>Presidência</span></div><button class="text-button" type="button" id="mapRefresh">↻ Atualizar mapa</button></div>
+          <p id="mapHint" class="map-note" role="status">Escolha um estado. Cada UF exibe o avanço da totalização ao lado do mapa.</p>
           <div id="geoMap" class="geo-map" aria-label="Mapa do Brasil: selecione um estado para abrir o mapa dos municípios"><div class="loading-state">Carregando mapa do Brasil...</div></div>
           <div class="map-legend"><span><i class="dot red"></i> Lula · 13</span><span><i class="dot green"></i> Flávio Bolsonaro · 22</span><span><i class="dot purple"></i> Outro candidato</span><span><i class="dot gray"></i> Sem dados</span></div>
-          <p class="caption">Cor = candidato com mais votos na UF na seleção atual. Não representa projeção, vitória nacional nem totalização concluída. O mapa usa limites geográficos do IBGE quando disponíveis.</p>
+          <p class="caption">Cor = candidato à frente na UF, não vitória oficial. Porcentagens das seções são diferentes das porcentagens de votos. O mapa usa limites geográficos do IBGE quando disponíveis.</p>
         </div>
         <aside class="surface state-sidebar">
           <div class="sidebar-heading"><div><span class="eyebrow">EXPLORE OS RESULTADOS</span><h3 id="sidebarTitle">27 unidades da Federação</h3></div><span id="statesReady" class="tiny-badge">Consultando...</span></div>
@@ -61,6 +66,11 @@
         <aside id="cityMapPanel" class="surface state-explorer" role="region" aria-labelledby="cityMapTitle" hidden>
           <div class="explorer-nav"><button id="cityMapClose" type="button" class="explorer-back">← Voltar ao Brasil</button><span class="explorer-step">BRASIL / <span id="explorerBreadcrumb">ESTADO</span></span></div>
           <div class="explorer-heading"><span class="eyebrow">EXPLORE O ESTADO</span><h3 id="cityMapTitle">Mapa dos municípios</h3><p id="cityMapHint">Toque em uma cidade do mapa ou encontre pelo nome.</p></div>
+          <div id="stateRaceCard" class="race-card" aria-live="polite">
+            <div class="race-head"><span class="race-icon" aria-hidden="true">▣</span><div><span class="eyebrow">GOVERNO DO ESTADO</span><strong id="stateRaceTitle">E o governador?</strong></div></div>
+            <p id="stateRaceDescription">Consultando a situação oficial da eleição estadual...</p>
+            <button type="button" id="stateRaceButton" class="button primary">Ver resultado do governador ↓</button>
+          </div>
           <label class="explorer-search-label" for="explorerSearch">Qual cidade você quer consultar?</label>
           <input id="explorerSearch" class="explorer-search" type="search" autocomplete="off" placeholder="Ex.: Carambeí, Curitiba..." aria-controls="explorerSuggestions" aria-describedby="explorerSearchStatus">
           <div id="explorerSuggestions" class="explorer-suggestions" role="group" aria-label="Cidades encontradas" hidden></div>
@@ -80,8 +90,9 @@
           <div class="filter-group"><div class="filter-topline"><strong>Qual turno você quer acompanhar?</strong><span>O 1º turno continua disponível</span></div>
             <div class="choice-row" id="turnButtons" role="group" aria-label="Turno eleitoral">
               <button class="choice active" type="button" data-round="1" aria-pressed="true">1º turno <small>4 de outubro</small></button>
-              <button class="choice" type="button" data-round="2" aria-pressed="false">2º turno <small>25 de outubro</small></button>
+              <button class="choice" type="button" data-round="2" aria-pressed="false" disabled aria-describedby="roundUnlockHint">2º turno <small>25 de outubro · Em breve</small></button>
             </div>
+            <p id="roundUnlockHint" class="round-unlock-hint" role="status">O segundo turno será liberado automaticamente em 25/10, no horário de Brasília.</p>
           </div>
           <div class="filter-group"><div class="filter-topline"><strong>O que você quer consultar?</strong><span>Escolha um cargo</span></div>
             <div class="choice-row office-choices" id="officeButtons" role="group" aria-label="Cargo eleitoral">
@@ -97,8 +108,13 @@
             <div class="selected-actions"><button type="button" id="changePlaceBtn" class="button secondary">Buscar outra cidade</button><button type="button" id="allBrazilBtn" class="button secondary">Ver Brasil</button><button type="button" id="refreshBtn" class="button secondary">↻ Atualizar</button></div>
           </div>
         </div>
+        <div id="stateRaceSummary" class="race-summary" hidden aria-live="polite">
+          <div><strong id="stateRaceSummaryTitle">Governador</strong><p id="stateRaceSummaryDescription">Buscando dados oficiais...</p></div>
+          <button id="stateRaceSummaryButton" type="button" class="button secondary">Ver governador</button>
+        </div>
         <div id="statusBanner" class="status-banner" role="status"><span class="status-marker"></span><div><strong id="statusTitle">Conectando ao TSE</strong><p id="statusMessage">Aguarde a verificação dos resultados oficiais.</p></div></div>
         <div class="results-heading"><div><span class="eyebrow" id="officeCaption">PRESIDÊNCIA</span><h3 id="electionHeading">1º turno · Brasil</h3><p id="resultsSubtitle">Dados oficiais, quando disponibilizados</p></div><a id="tseLink" class="external-link" href="https://resultados.tse.jus.br/" target="_blank" rel="noopener noreferrer">Consultar TSE ↗</a></div>
+        <div id="electionOutcome" class="election-outcome" aria-live="polite" hidden></div>
         <div id="candidateList" class="candidate-list"><div class="empty-message">Aguardando dados oficiais para a seleção.</div></div>
         <div id="moreBar" class="more-bar" hidden><button class="text-button" id="moreCandidates" type="button">Mostrar todos os candidatos ↓</button></div>
         <div class="statistics"><div class="stat"><span>Seções totalizadas</span><strong id="progressPercent">—</strong><div class="progress-track"><span id="progressBar"></span></div><small id="sectionCounts">Aguardando dados</small></div><div class="stat"><span>Votos válidos</span><strong id="validVotes">—</strong><small>Conforme arquivo da Justiça Eleitoral</small></div><div class="stat"><span>Atualização do TSE</span><strong class="time-value" id="lastUpdated">—</strong><small id="progressText">Aguardando disponibilidade</small></div></div>
@@ -111,7 +127,7 @@
       </div>
     </section>
     <section id="anuncie" class="ad-section" aria-labelledby="adHeading"><div class="ad-text"><span class="ad-eyebrow">ESPAÇO PUBLICITÁRIO DISPONÍVEL</span><h2 id="adHeading">Sua marca pode estar <em>aqui.</em></h2><p>Divulgue seu negócio em um espaço de destaque, ao lado da experiência de consulta das eleições de 2026.</p><div class="ad-actions"><button class="button ad-button" id="advertBtn" type="button">Quero anunciar ↗</button><button class="ad-copy" id="copyEmailBtn" type="button">Copiar e-mail comercial</button></div></div><div class="ad-art" aria-hidden="true"><div class="ad-shape a"></div><div class="ad-shape b"></div><span>✦</span></div></section>
-    <section class="method-section" id="sobre"><div><span class="eyebrow">TRANSPARÊNCIA</span><h2>Entenda os números</h2><p>O UrnaFlash é independente e não possui vínculo institucional com o TSE.</p></div><div class="method-items"><div><b>Dados oficiais</b><p>Somente números obtidos dos arquivos públicos da Justiça Eleitoral.</p></div><div><b>Parcial não é resultado final</b><p>A liderança em um estado pode mudar enquanto as seções são totalizadas.</p></div><div><b>Atualizações responsáveis</b><p>Se a fonte ficar indisponível, sinalizamos a falha em vez de inventar votos.</p></div></div></section>
+    <section class="method-section" id="sobre"><div><span class="eyebrow">TRANSPARÊNCIA</span><h2>Entenda os números</h2><p>O UrnaFlash é independente e não possui vínculo institucional com o TSE.</p></div><div class="method-items"><div><b>Dados oficiais</b><p>Somente números obtidos dos arquivos públicos da Justiça Eleitoral.</p></div><div><b>Parcial não é resultado final</b><p>A liderança em um estado pode mudar enquanto as seções são totalizadas. Conclusão da contagem não equivale, por si só, à confirmação do eleito.</p></div><div><b>Atualizações responsáveis</b><p>Se a fonte ficar indisponível, sinalizamos a falha em vez de inventar votos.</p></div></div></section>
   </main>
   <footer class="footer"><div class="shell footline"><a class="footbrand" href="/">urna<span>flash</span><small> Informação para todos.</small></a><div><a href="https://resultados.tse.jus.br/" rel="noopener noreferrer" target="_blank">Fonte oficial · TSE ↗</a><span>© 2026 UrnaFlash · Portal independente</span></div></div></footer>
   <div id="toast" class="toast" role="status" hidden></div>

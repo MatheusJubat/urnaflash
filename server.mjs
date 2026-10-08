@@ -2,8 +2,9 @@ import http from 'node:http';
 import {readFile,stat} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 import path from 'node:path';
-import {getElectionConfig,electionFromConfig,loadResult,loadStateMap,loadMunicipalities,getStates,OFFICES,activeRoundFromResults,searchCities} from './tse.mjs';
+import {getElectionConfig,electionFromConfig,loadResult,loadStateMap,loadMunicipalities,getStates,OFFICES,searchCities,loadGovernorSituation} from './tse.mjs';
 import {REGIONS,regionBySlug,slugPath} from './regions.mjs';
+import {brasilDate,secondRoundUnlocked,defaultRound,SECOND_ROUND_DATE} from './schedule.mjs';
 
 const PORT=Number(process.env.PORT||3000), HOST=process.env.HOST||'0.0.0.0';
 const root=path.join(path.dirname(fileURLToPath(import.meta.url)),'public');
@@ -52,7 +53,11 @@ async function getGeometry(kind,uf=''){
       const text=await response.text();if(text.length>14_000_000)throw new Error('Malha muito grande');
       const parsed=JSON.parse(text);
       if(parsed?.type!=='FeatureCollection'||!Array.isArray(parsed.features))throw new Error('GeoJSON IBGE não reconhecido');
-      geometryCache.set(key,{at:Date.now(),value:parsed});return parsed;
+      geometryCache.set(key,{at:Date.now(),value:parsed});
+      // Manter Brasil e no máximo dois mapas estaduais em memória.
+      const completed=[...geometryCache.entries()].filter(([,entry])=>entry.value).sort((a,b)=>a[1].at-b[1].at);
+      for(const [oldKey] of completed){if(completed.length<=3)break;if(oldKey!==key){geometryCache.delete(oldKey);completed.shift();}}
+      return parsed;
     }catch(err){if(old?.value)return old.value;throw err;}
   })();geometryCache.set(key,{...old,inflight:flight});
   try{return await flight;}finally{const entry=geometryCache.get(key);if(entry?.inflight===flight)geometryCache.delete(key);}
@@ -60,13 +65,20 @@ async function getGeometry(kind,uf=''){
 export const server=http.createServer(async(req,res)=>{
   security(res);const head=req.method==='HEAD';if(req.method!=='GET'&&!head)return json(res,405,{error:'Metodo nao permitido'});
   let url;try{url=new URL(req.url,`http://${req.headers.host||'localhost'}`);}catch{return json(res,400,{error:'URL invalida'},head);}
-  if(url.pathname==='/api/health')return json(res,200,{ok:true,service:'urnaflash',version:'5.0.0'},head);
+  if(url.pathname==='/api/health')return json(res,200,{ok:true,service:'urnaflash',version:'6.1.0'},head);
   if(url.pathname==='/api/status'){
     try{const c=await getElectionConfig();return json(res,200,{source:'TSE',rounds:{'1':!!electionFromConfig(c,1),'2':!!electionFromConfig(c,2)},checkedAt:new Date().toISOString()},head);}catch{return json(res,503,{error:'Fonte TSE indisponivel'},head);}
   }
   if(url.pathname==='/api/auto'){
-    const second=await loadResult({round:2,uf:'br',office:'presidente'});
-    return json(res,200,{recommendedRound:activeRoundFromResults(null,second),secondTurnStatus:second.state,checkedAt:new Date().toISOString()},head);
+    const enabled=secondRoundUnlocked(),now=brasilDate();
+    // Antes de 25/10 não consultar arquivos que podem nem estar publicados (evita 404 no TSE).
+    return json(res,200,{recommendedRound:defaultRound(),unlocked:enabled,brasilDate:now,
+      unlockDate:SECOND_ROUND_DATE,checkedAt:new Date().toISOString()},head);
+  }
+  if(url.pathname==='/api/governor-status'){
+    const uf=(url.searchParams.get('uf')||'').toLowerCase();
+    if(!IBGE_CODES[uf])return json(res,400,{state:'invalid',message:'Escolha um estado válido.'},head);
+    return json(res,200,await loadGovernorSituation(uf,{unlocked:secondRoundUnlocked()}),head);
   }
   if(url.pathname==='/api/results'){
     const round=Number(url.searchParams.get('round')||1),office=url.searchParams.get('office')||'presidente';
@@ -112,4 +124,4 @@ export const server=http.createServer(async(req,res)=>{
     return send(res,200,bytes,types[path.extname(file)]||'application/octet-stream',head,'public,max-age=300');}
   catch{return json(res,404,{error:'Arquivo nao encontrado'},head);}
 });
-if(process.env.NODE_ENV!=='test')server.listen(PORT,HOST,()=>console.log(`UrnaFlash v5 em ${HOST}:${PORT}`));
+if(process.env.NODE_ENV!=='test')server.listen(PORT,HOST,()=>console.log(`UrnaFlash v6 em ${HOST}:${PORT}`));

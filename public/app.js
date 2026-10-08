@@ -15,6 +15,7 @@ let round=1,office='presidente',uf='br',municipality='',cityName='',manualTurn=f
 let resultsSequence=0,mapSequence=0,statesData={},geoFeatures=null,mapRound=1,cityCache={},refreshTimer;
 let cityGeoFeatures=null,cityGeoUF='',cityVoteCache=new Map();
 let explorerOpenedFrom=null,explorerLoadSequence=0,latestResult=null,viewZoom=1,mapViewBox=null,ignoreNextMapClick=false;
+let secondUnlocked=false,nationalSequence=0,latestNational=null,governorSequence=0,governorSituation=null;
 const readStore=(key,defaultValue)=>{try{return localStorage.getItem(key)||defaultValue;}catch{return defaultValue;}};
 const writeStore=(key,val)=>{try{localStorage.setItem(key,val);}catch{}};
 function setTheme(theme){const isDark=theme==='dark';document.documentElement.dataset.theme=isDark?'dark':'light';$('#themeToggle').setAttribute('aria-pressed',String(isDark));$('#themeToggle').setAttribute('aria-label',isDark?'Ativar modo claro':'Ativar modo escuro');$('#themeIcon').textContent=isDark?'☀':'☾';$('#themeLabel').textContent=isDark?'Modo claro':'Modo escuro';writeStore('urnaflash-theme',theme);}
@@ -23,9 +24,16 @@ const email=()=>['contato','urnaflash'].join('')+'@'+'gmail.com';
 const pathFor=code=>code==='br'?'/':`/eleicoes-2026/${SLUGS[code]}`;
 function applyURL(){const params=new URLSearchParams();if(manualTurn||round===2)params.set('turno',String(round));if(office!=='presidente')params.set('cargo',office);if(municipality)params.set('municipio',municipality);const query=params.toString();history.replaceState({},'',pathFor(uf)+(query?'?'+query:''));}
 function setStatus(kind,title,msg){const node=$('#statusBanner');node.dataset.status=kind;$('#statusTitle').textContent=title;$('#statusMessage').textContent=msg;}
-function resetCandidateList(){allCandidates=false;$('#candidateList').replaceChildren(el('div','empty-message','Aguardando a publicação dos resultados para esta seleção.'));$('#moreBar').hidden=true;
+function resetCandidateList(){$('#electionOutcome').hidden=true;allCandidates=false;$('#candidateList').replaceChildren(el('div','empty-message','Aguardando a publicação dos resultados para esta seleção.'));$('#moreBar').hidden=true;
   for(const [key,txt] of [['progressPercent','—'],['validVotes','—'],['lastUpdated','—'],['sectionCounts','Sem informação'],['progressText','Sem informação']])$('#'+key).textContent=txt;
   $('#progressBar').style.width='0%';}
+function dateInBrasilia(){const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());const pick=t=>parts.find(p=>p.type===t)?.value;return `${pick('year')}-${pick('month')}-${pick('day')}`;}
+function updateUnlockStatus(enabled){
+  secondUnlocked=enabled;
+  const btn=$('#turnButtons [data-round="2"]');btn.disabled=!enabled;
+  btn.querySelector('small').textContent=enabled?'25 de outubro':'25 de outubro · Em breve';
+  $('#roundUnlockHint').textContent=enabled?'Segundo turno liberado. Os números aparecem apenas depois de publicados pelo TSE.':'O 2º turno será liberado automaticamente em 25/10, no horário de Brasília.';
+}
 function populateOffices(){
   if(round===2&&!['presidente','governador'].includes(office))office='presidente';
   if(office==='deputado-distrital'&&uf!=='df')office='deputado-estadual';
@@ -52,19 +60,19 @@ function updateHeadings(){populateOffices();
   $('#cityMapToggle').disabled=uf==='br';
   applyURL();
 }
-function changeRound(value,manual=true){round=value;if(manual)manualTurn=true;
+function changeRound(value,manual=true){if(value===2&&!secondUnlocked){toast('Segundo turno disponível a partir de 25 de outubro.');return;}round=value;if(manual)manualTurn=true;
   updateHeadings();resetCandidateList();refreshResults();refreshMap();}
 function changeOffice(value){if(!OFFICES[value])return;office=value;
   if(office==='deputado-distrital'&&uf!=='df'){office='deputado-estadual';toast('Deputado distrital é exclusivo do Distrito Federal. Selecione DF no mapa.');return;}
   updateHeadings();resetCandidateList();refreshResults();}
 function changeUF(code){if(!STATE_NAMES[code])return;uf=code;municipality='';cityName='';
   $('#cityQuery').value='';renderCitySuggestions([]);showCityFeedback('Busque sua cidade pelo nome para ver os votos municipais.');
-  updateHeadings();resetCandidateList();refreshResults();drawMap();if(code==='br')closeCityMap();}
+  updateHeadings();resetCandidateList();refreshResults();drawMap();refreshGovernorSituation();if(code==='br')closeCityMap();}
 function candidateElement(candidate,i){
   const node=el('div','candidate');node.dataset.identity=candidate.number;
   node.append(el('span','candidate-rank',String(i+1).padStart(2,'0')));
   const main=el('div');main.append(el('div','candidate-name',candidate.name||'Nome não informado'),el('div','candidate-meta',`${candidate.party||'Partido não identificado'} · Nº ${candidate.number||'—'}`));
-  if(candidate.elected)main.append(el('span','tiny-badge','Eleito conforme o arquivo'));
+  if(candidate.elected&&latestResult?.finished)main.append(el('span','tiny-badge','Eleito, conforme o TSE'));
   node.append(main);
   const stats=el('div','candidate-votes');stats.append(el('strong','',fmtPct(candidate.percentage)),el('span','',`${fmtVotes(candidate.votes)} votos`));node.append(stats);
   const bar=el('div','candidate-bar'),fill=el('span');fill.style.width=`${Math.max(0,Math.min(100,candidate.percentage))}%`;bar.append(fill);node.append(bar);
@@ -76,11 +84,17 @@ function paintCandidates(){const max=allCandidates?latestCandidates.length:Math.
   $('#moreBar').hidden=latestCandidates.length<=8||allCandidates;
 }
 function showResults(data){latestResult=data;latestCandidates=data.candidates||[];allCandidates=false;paintCandidates();updateExplorerSummary(data);
-  if(municipality&&office==='presidente'&&['ok','stale'].includes(data.state)){cityVoteCache.set(`${round}-${uf}-${municipality}`,data.candidates[0]);if(cityGeoUF===uf&&!$('#cityMapPanel').hidden)drawCityMap();}
+  const outcome=$('#electionOutcome'),elected=data.finished?data.candidates.filter(c=>c.elected):[];
+  outcome.replaceChildren();outcome.hidden=false;
+  if(elected.length){outcome.dataset.kind='elected';outcome.append(el('strong','',`Resultado oficial: ${elected.map(c=>c.name).join(', ')}`),el('p','','Candidato(s) indicado(s) como eleito(s) no arquivo oficial do TSE.'));}
+  else if(data.finished){outcome.dataset.kind='finished';outcome.append(el('strong','','Totalização encerrada'),el('p','','O arquivo informa que a totalização foi concluída, mas ainda não traz confirmação de candidato eleito para esta consulta.'));}
+  else{outcome.dataset.kind='partial';outcome.append(el('strong','',`${data.candidates[0]?.name||'Candidato'} está à frente nesta consulta`),el('p','',`${fmtPct(data.candidates[0]?.percentage||0)} dos votos válidos informados até agora. Parcial: os números podem mudar.`));}
+
+  if(municipality&&office==='presidente'&&['ok','stale'].includes(data.state)){cityVoteCache.set(`${round}-${uf}-${municipality}`,{leader:data.candidates[0],progress:data.progress,sectionsRemaining:data.sectionsRemaining,finished:data.finished});if(cityGeoUF===uf&&!$('#cityMapPanel').hidden)drawCityMap();}
   $('#progressPercent').textContent=fmtPct(data.progress);$('#progressBar').style.width=Math.min(100,Math.max(0,data.progress))+'%';
   $('#validVotes').textContent=fmtVotes(data.validVotes);$('#lastUpdated').textContent=data.generatedAt||'Não informada';
   $('#sectionCounts').textContent=`${fmtVotes(data.sectionsCounted)} de ${fmtVotes(data.sectionsTotal)} seções`;
-  $('#progressText').textContent=data.finished?'Totalização concluída':'Resultado parcial · pode mudar';
+  $('#progressText').textContent=data.finished?'Totalização concluída':`Faltam ${data.sectionsRemaining===null?'—':fmtVotes(data.sectionsRemaining)} seções · parcial`;
   if(data.sourceUrl)$('#tseLink').href=data.sourceUrl;
 }
 async function refreshResults(){const my=++resultsSequence;updateHeadings();
@@ -93,17 +107,18 @@ async function refreshResults(){const my=++resultsSequence;updateHeadings();
     setStatus(data.state==='ok'?'ok':'awaiting',data.state==='ok'?(data.finished?'Totalização concluída':'Números oficiais disponíveis'):'Último resultado conhecido',
       data.state==='stale'?'Atualização falhou, mostrando última leitura oficial disponível.':`Os dados são do TSE. ${data.finished?'Totalização finalizada no arquivo atual.':'Parcial: a distribuição pode mudar.'}`);
   }else{latestResult=null;updateExplorerSummary(null);latestCandidates=[];resetCandidateList();
-    setStatus(data.state==='awaiting'||data.state==='choose-state'?'awaiting':'error',
-      data.state==='choose-state'?'Escolha um estado':data.state==='awaiting'?'Aguardando publicação do TSE':'Não foi possível carregar o resultado',data.message||'Tente novamente em instantes.');}
+    setStatus(['awaiting','choose-state','not-applicable'].includes(data.state)?'awaiting':'error',
+      data.state==='not-applicable'?'Governador definido no primeiro turno':data.state==='choose-state'?'Escolha um estado':data.state==='awaiting'?'Aguardando publicação do TSE':'Não foi possível carregar o resultado',data.message||'Tente novamente em instantes.');}
 }
 function mapClass(d){if(!d?.leader)return 'neutral';return d.leader.number==='13'?'red':d.leader.number==='22'?'green':'other';}
 function mapFill(d){const cls=mapClass(d);return cls==='red'?'var(--red)':cls==='green'?'var(--green)':cls==='other'?'#917fc1':'var(--gray)';}
 function statusByUF(code){return statesData[code]||null;}
 function tooltipText(code){const d=statusByUF(code);if(!d?.leader)return `${STATE_NAMES[code]} · sem resultado disponível`;
-  return `${STATE_NAMES[code]} · ${d.leader.name} (${d.leader.party||'partido não identificado'}) · ${fmtPct(d.leader.percentage)} · ${d.finished?'totalização concluída':'parcial: '+fmtPct(d.progress)+' das seções'}`;}
+  return `${STATE_NAMES[code]} · à frente: ${d.leader.name} (${d.leader.party||'partido não identificado'}), ${fmtPct(d.leader.percentage)} dos votos · ${fmtPct(d.progress)} das seções totalizadas · ${d.sectionsRemaining===null?'restante desconhecido':fmtVotes(d.sectionsRemaining)+' seções restantes'} · ${d.finished?'totalização encerrada':'parcial'}`;}
+
 function drawTiles(){const root=el('div','map-tiles');root.setAttribute('role','group');root.setAttribute('aria-label','Estados do Brasil em mosaico esquemático');
   for(const [code] of STATES){const pos=TILES[code];if(!pos)continue;
-    const button=el('button','state-tile '+mapClass(statusByUF(code)),code.toUpperCase());button.type='button';button.style.gridRow=String(pos[0]+1);button.style.gridColumn=String(pos[1]+1);
+    const d=statusByUF(code);const button=el('button','state-tile '+mapClass(d));button.append(el('strong','',code.toUpperCase()),el('small','',d?.leader?fmtPct(d.progress).replace(',00',''):'—')); button.type='button';button.style.gridRow=String(pos[0]+1);button.style.gridColumn=String(pos[1]+1);
     button.setAttribute('aria-label',tooltipText(code));button.title=tooltipText(code);button.addEventListener('click',()=>selectState(code));root.append(button);
   }$('#geoMap').replaceChildren(root);}
 function getCode(feature){const p=feature.properties||{};
@@ -126,30 +141,102 @@ function drawGeoMap(){const f=geoFeatures;if(!f?.length){drawTiles();return;}
     const p=document.createElementNS(ns,'path');p.setAttribute('d',paths.join(' '));p.setAttribute('fill',mapFill(statusByUF(code)));
     p.setAttribute('fill-rule','evenodd');p.setAttribute('class','geo-state');p.setAttribute('tabindex','0');p.setAttribute('role','button');p.setAttribute('aria-label',tooltipText(code));
     const title=document.createElementNS(ns,'title');title.textContent=tooltipText(code);p.append(title);
-    p.addEventListener('click',()=>selectState(code));p.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();selectState(code);}});svg.append(p);rendered++;
+    p.addEventListener('click',()=>selectState(code));p.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();selectState(code);}});svg.append(p);
+    // Legendas para UFs grandes; UFs pequenas sempre aparecem com dados na lista acessível ao lado.
+    const vertices=polygonsFor(feature).flatMap(poly=>poly[0]||[]);const bx=vertices.reduce((a,v)=>a+v[0],0)/(vertices.length||1),by=vertices.reduce((a,v)=>a+v[1],0)/(vertices.length||1);
+    if(vertices.length>3 && Number.isFinite(bx)&&Number.isFinite(by)){
+      const label=document.createElementNS(ns,'text');label.setAttribute('x',px(bx));label.setAttribute('y',py(by));label.setAttribute('class','geo-state-label');label.setAttribute('text-anchor','middle');label.textContent=code.toUpperCase();svg.append(label);
+      const d=statusByUF(code);if(d?.leader){const percentage=document.createElementNS(ns,'text');percentage.setAttribute('x',px(bx));percentage.setAttribute('y',py(by)+12);percentage.setAttribute('class','geo-state-progress');percentage.setAttribute('text-anchor','middle');percentage.textContent=fmtPct(d.progress);svg.append(percentage);}
+    }
+    rendered++;
   }
   if(rendered<15){drawTiles();return;}
   $('#geoMap').replaceChildren(svg);
 }
 function drawMap(){if(geoFeatures)drawGeoMap();else drawTiles();}
 function renderStateList(){const root=$('#statesList'),q=$('#stateSearch').value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();root.replaceChildren();
-  let available=0;
   for(const [code,name] of STATES){if(!name.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().includes(q)&&!code.includes(q))continue;
-    const data=statusByUF(code),btn=el('button','state-row');btn.type='button';
-    const left=el('div');left.append(el('b','',name),el('div','',code.toUpperCase()));left.lastChild.className='caption';btn.append(left);
-    const right=el('div','state-value');if(data?.leader){right.append(el('span','value-main',data.leader.name),el('small','',`${fmtPct(data.leader.percentage)} · ${data.finished?'Concluído':'Parcial'}`));available++;}
-    else right.append(el('small','','Aguardando dados'));
+    const data=statusByUF(code),btn=el('button','state-row');btn.type='button';btn.setAttribute('aria-label',tooltipText(code));
+    const left=el('div');left.append(el('b','',name),el('div','state-sub',code.toUpperCase()));btn.append(left);
+    const right=el('div','state-value');if(data?.leader){
+      right.append(el('span','value-main',`${data.leader.name} · ${fmtPct(data.leader.percentage)} dos votos`));
+      right.append(el('small','',`${fmtPct(data.progress)} das seções · ${data.finished?'concluído':fmtVotes(data.sectionsRemaining)+' restantes'}`));
+      const track=el('span','state-progress-line'),bar=el('span');bar.style.width=Math.max(0,Math.min(100,data.progress))+'%';track.append(bar);right.append(track);
+      if(data.finished)right.append(el('span','state-totalized','Totalização encerrada'));
+    }else right.append(el('small','','Aguardando resultados'));
     btn.append(right);btn.addEventListener('click',()=>selectState(code));root.append(btn);
   }
   if(!root.children.length)root.append(el('div','empty-message','Nenhum estado encontrado.'));
   $('#statesReady').textContent=`${Object.values(statesData).filter(x=>x.leader).length}/27 com dados`;
 }
+function renderNational(d){const good=['ok','stale'].includes(d?.state)&&d?.candidates?.length;
+  if(!good){$('#nationalStatus').textContent=round===2?'Aguardando o início da divulgação':'Dados nacionais temporariamente indisponíveis';
+    $('#nationalStatusDetail').textContent=round===2?'No dia 25/10, o TSE divulga os resultados a partir das 17h (Brasília).':'Tente atualizar daqui a pouco. Nenhum número fictício será exibido.';
+    $('#nationalBadge').textContent='Aguardando';$('#nationalProgress').textContent='—';$('#nationalProgressBar').style.width='0%';$('#nationalRemaining').textContent='—';$('#nationalSectionTotal').textContent='Sem informação';$('#nationalLeader').textContent='—';$('#nationalLeaderInfo').textContent='Fonte: TSE';$('#nationalLeadLabel').textContent='Candidato à frente';return;}
+  const elected=d.finished?d.candidates.find(c=>c.elected):null;
+  $('#nationalStatus').textContent=elected?'Resultado oficial da eleição':d.finished?'Totalização encerrada':`${round}º turno: apuração em andamento`;
+  $('#nationalStatusDetail').textContent=elected?`Eleito conforme o TSE: ${elected.name}`:d.finished?'Todos os dados de totalização recebidos; consulte o resultado oficial.':'Os percentuais de votos e de seções são métricas diferentes. A liderança ainda pode mudar.';
+  $('#nationalBadge').textContent=elected?'Eleito confirmado':d.finished?'Encerrada':'Parcial · ao vivo';
+  $('#nationalProgress').textContent=fmtPct(d.progress);$('#nationalProgressBar').style.width=Math.max(0,Math.min(100,d.progress))+'%';
+  $('#nationalRemaining').textContent=d.sectionsRemaining===null?'—':fmtVotes(d.sectionsRemaining);
+  $('#nationalSectionTotal').textContent=`${fmtVotes(d.sectionsCounted)} de ${fmtVotes(d.sectionsTotal)} seções`;
+  $('#nationalLeadLabel').textContent=elected?'Eleito segundo TSE':'Candidato à frente';
+  $('#nationalLeader').textContent=(elected||d.candidates[0]).name;
+  $('#nationalLeaderInfo').textContent=`${fmtPct((elected||d.candidates[0]).percentage)} dos votos válidos · ${fmtVotes((elected||d.candidates[0]).votes)} votos`;
+}
+async function refreshNational(){const seq=++nationalSequence,currentRound=round;
+  try{const data=await fetchJson(`/api/results?round=${currentRound}&uf=br&office=presidente`);if(seq!==nationalSequence)return;latestNational=data;renderNational(data);}
+  catch{if(seq!==nationalSequence)return;latestNational=null;renderNational(null);}
+}
 async function refreshMap(){const seq=++mapSequence;mapRound=round;$('#statesReady').textContent='Consultando...';
+  refreshNational();
   try{const data=await fetchJson('/api/map?round='+mapRound);if(seq!==mapSequence)return;
-    statesData=Object.fromEntries((data.states||[]).map(s=>[s.uf,s]));renderStateList();drawMap();}
-  catch{if(seq!==mapSequence)return;$('#statesReady').textContent='Indisponível';renderStateList();drawMap();}
+    statesData=Object.fromEntries((data.states||[]).map(s=>[s.uf,s]));renderStateList();drawMap();
+    const total=Object.values(statesData).filter(x=>x.finished).length;
+    $('#mapHint').textContent=`${total} de 27 UFs com totalização encerrada. Toque em um estado para ver quem está à frente e quantas seções faltam.`;
+  }catch{if(seq!==mapSequence)return;$('#statesReady').textContent='Indisponível';renderStateList();drawMap();$('#mapHint').textContent='Não conseguimos atualizar todos os estados neste momento. Tente novamente.';}
 }
 async function loadGeometry(){try{const data=await fetchJson('/api/geo/states');if(data?.features?.length){geoFeatures=data.features;drawMap();}}catch{drawTiles();}}
+function renderGovernorSituation(data){
+  const show=uf!=='br',card=$('#stateRaceCard'),summary=$('#stateRaceSummary');
+  summary.hidden=!show;
+  if(!show)return;
+  const label=STATE_NAMES[uf]||uf.toUpperCase();
+  const titles={'decided-first':'Governador definido no 1º turno','decided-second':'Governador eleito no 2º turno',
+    'counting-second':'Apuração de governador ao vivo','counted-second':'Seções totalizadas no estado',
+    'checking-first':'Verificando resultado do 1º turno','pending':'Segundo turno estadual em verificação','unknown':'Dados do governo estadual indisponíveis'};
+  const header=titles[data?.state]||'Situação do governador';
+  const detail=data?.message||'Consultando resultados estaduais do TSE.';
+  $('#stateRaceTitle').textContent=header;
+  $('#stateRaceDescription').textContent=detail;
+  $('#stateRaceSummaryTitle').textContent=`${label} · ${header}`;
+  $('#stateRaceSummaryDescription').textContent=detail;
+  const btnText=data?.state==='decided-first'?'Ver resultado do 1º turno':data?.state==='counting-second'?'Acompanhar apuração estadual':'Consultar votos para governador';
+  $('#stateRaceButton').textContent=btnText+' →';
+  $('#stateRaceSummaryButton').textContent=btnText;
+  card.dataset.state=data?.state||'unknown';summary.dataset.state=data?.state||'unknown';
+}
+async function refreshGovernorSituation(){
+  const seq=++governorSequence,selected=uf;
+  $('#stateRaceSummary').hidden=selected==='br';
+  if(selected==='br'){governorSituation=null;return;}
+  renderGovernorSituation({state:'loading',message:'Consultando a eleição para governador neste estado...'});
+  try{
+    const data=await fetchJson('/api/governor-status?uf='+encodeURIComponent(selected));
+    if(seq!==governorSequence||selected!==uf)return;
+    governorSituation=data;renderGovernorSituation(data);
+  }catch{
+    if(seq!==governorSequence||selected!==uf)return;
+    governorSituation={state:'unknown',message:'A consulta ao TSE falhou. Tente novamente em instantes.'};renderGovernorSituation(governorSituation);
+  }
+}
+function showGovernorFromShortcut(){
+  if(uf==='br'){toast('Escolha seu estado primeiro.');return;}
+  if(governorSituation?.state==='decided-first' && round!==1)changeRound(1);
+  office='governador';updateHeadings();resetCandidateList();refreshResults();
+  if(!$('#cityMapPanel').hidden)closeCityMap();
+  $('#resultados').scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
+}
 function selectState(code){explorerOpenedFrom=document.activeElement;changeUF(code);openCityMap();
   const target=$('#mapa');if(!matchMedia('(max-width:800px)').matches)target.scrollIntoView({behavior:'smooth',block:'start'});
 }
@@ -177,7 +264,7 @@ function selectCity(item,{fromExplorer=false}={}){const code=String(item.code||'
   uf=item.uf;municipality=code;cityName=item.name;$('#cityQuery').value=`${item.name} — ${item.uf.toUpperCase()}`;
   renderCitySuggestions([]);showCityFeedback(`Local selecionado: ${item.name}, ${STATE_NAMES[uf]}. Resultado exibido abaixo.`);
   try{localStorage.setItem('urnaflash-last-city',JSON.stringify({code,uf,name:item.name}));}catch{}
-  updateLastCity();updateHeadings();resetCandidateList();updateExplorerSelection();refreshResults();drawMap();
+  updateLastCity();updateHeadings();resetCandidateList();updateExplorerSelection();refreshResults();drawMap();refreshGovernorSituation();
   if(fromExplorer)return;
   closeCityMap();
   $('#resultados').scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
@@ -225,10 +312,10 @@ function drawCityMap(){
       segments.push(ring.map((pt,index)=>(index?'L':'M')+X(pt[0]).toFixed(1)+','+Y(pt[1]).toFixed(1)).join(' ')+'Z');}
     if(!segments.length)continue;
     const outcome=cityVoteCache.get(`${round}-${cityGeoUF}-${item.code}`);
-    const fill=outcome?mapFill({leader:outcome}):'var(--gray)';
+    const fill=outcome?mapFill({leader:outcome.leader}):'var(--gray)';
     const path=document.createElementNS(ns,'path');path.setAttribute('d',segments.join(' '));path.setAttribute('fill',fill);path.setAttribute('fill-rule','evenodd');path.setAttribute('class','geo-state');
     path.setAttribute('tabindex','0');path.setAttribute('role','button');
-    const title=outcome?`${item.name} · ${outcome.name} · ${fmtPct(outcome.percentage)}`:`${item.name} · clique para consultar`;path.setAttribute('aria-label',title);
+    const title=outcome?`${item.name} · À frente: ${outcome.leader.name}, ${fmtPct(outcome.leader.percentage)} dos votos · ${fmtPct(outcome.progress)} das seções totalizadas · ${outcome.finished?'concluída':fmtVotes(outcome.sectionsRemaining)+' restantes'}`:`${item.name} · clique para consultar`; path.setAttribute('aria-label',title);
     const t=document.createElementNS(ns,'title');t.textContent=title;path.append(t);
     const show=()=>{if(ignoreNextMapClick)return;selectCity(item,{fromExplorer:true});$('#explorerSearch').value=item.name;$('#explorerSearchStatus').textContent=`Cidade selecionada: ${item.name}.`;};
     path.addEventListener('click',show);path.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();show();}});
@@ -259,7 +346,7 @@ function updateExplorerSelection(){const card=$('#explorerSelected');if(!municip
 }
 function updateExplorerSummary(data){if(!municipality||$('#explorerSelected').hidden)return;
   const elem=$('#explorerSelectedSummary');
-  if(data&&(data.state==='ok'||data.state==='stale')&&data.candidates?.length){const leader=data.candidates[0];elem.textContent=`${leader.name} recebeu ${fmtPct(leader.percentage)} dos votos informados. ${data.finished?'Totalização concluída.':'Apuração parcial.'}`;}
+  if(data&&(data.state==='ok'||data.state==='stale')&&data.candidates?.length){const leader=data.candidates[0];elem.textContent=`${leader.name} está à frente com ${fmtPct(leader.percentage)} dos votos válidos. ${fmtPct(data.progress)} das seções totalizadas; ${data.sectionsRemaining===null?'restante não informado':fmtVotes(data.sectionsRemaining)+' seções restantes'}. ${data.finished?'Totalização encerrada.':'Apuração parcial.'}`;}
   else elem.textContent='Não foi possível apresentar os votos desta cidade neste momento. Você ainda pode tentar novamente no painel completo.';
 }
 function renderExplorerSuggestions(){const query=normalizeName($('#explorerSearch').value.trim()),root=$('#explorerSuggestions');root.replaceChildren();
@@ -297,11 +384,16 @@ async function openCityMap(){
     $('#cityMap').replaceChildren(el('p','loading-state','O mapa do IBGE está temporariamente indisponível. A pesquisa de municípios acima continua funcionando.'));
   }
 }
-async function checkAutomaticRound(){if(manualTurn)return;
-  try{const data=await fetchJson('/api/auto');const candidate=data.recommendedRound===2?2:1;
-    $('#autoStatus').textContent=candidate===2?'Segundo turno com votos oficialmente publicados':'Primeiro turno disponível · segundo turno em preparação';
-    if(candidate!==round)changeRound(candidate,false);
-  }catch{$('#autoStatus').textContent='Acompanhe a publicação dos resultados oficiais';}
+async function checkAutomaticRound(){
+  try{const data=await fetchJson('/api/auto');
+    updateUnlockStatus(!!data.unlocked);
+    const candidate=data.recommendedRound===2?2:1;
+    $('#autoStatus').textContent=data.unlocked?'2º turno liberado · aguardando publicação oficial':'1º turno disponível · 2º turno em 25 de outubro';
+    if(!manualTurn&&candidate!==round){changeRound(candidate,false);refreshGovernorSituation();}
+  }catch{const enabled=dateInBrasilia()>='2026-10-25';updateUnlockStatus(enabled);
+    $('#autoStatus').textContent=enabled?'2º turno liberado · consultando TSE':'O segundo turno será liberado em 25 de outubro';
+    if(!manualTurn&&round!==(enabled?2:1)){changeRound(enabled?2:1,false);refreshGovernorSituation();}
+  }
 }
 function setupSharing(){
   $('#shareBtn').addEventListener('click',async()=>{const link=location.href;if(navigator.share){try{await navigator.share({title:'UrnaFlash 2026',url:link});return;}catch{}}
@@ -317,12 +409,15 @@ async function cleanupOldSW(){try{if('serviceWorker' in navigator)for(const r of
 function init(){setTheme(readStore('urnaflash-theme','light'));$('#themeToggle').addEventListener('click',()=>setTheme(document.documentElement.dataset.theme==='dark'?'light':'dark'));
   const path=location.pathname.split('/').filter(Boolean),code=Object.entries(SLUGS).find(([,slug])=>slug===path[1])?.[0];
   uf=code||'br';const params=new URLSearchParams(location.search);
-  manualTurn=params.get('turno')==='1'||params.get('turno')==='2';round=params.get('turno')==='2'?2:1;
+  const unlocked=dateInBrasilia()>='2026-10-25';updateUnlockStatus(unlocked);
+  manualTurn=params.get('turno')==='1'||(unlocked&&params.get('turno')==='2');round=manualTurn?(params.get('turno')==='2'?2:1):(unlocked?2:1);
   office=OFFICES[params.get('cargo')]?params.get('cargo'):'presidente';municipality=/^\d{5}$/.test(params.get('municipio')||'')?params.get('municipio'):'';
   if(municipality){cityName=uf==='pr'&&municipality==='75221'?'Carambeí':`Município ${municipality}`;}
   document.querySelectorAll('#turnButtons [data-round]').forEach(btn=>btn.addEventListener('click',()=>changeRound(Number(btn.dataset.round))));
   document.querySelectorAll('#officeButtons [data-office]').forEach(btn=>btn.addEventListener('click',()=>changeOffice(btn.dataset.office)));
   $('#changePlaceBtn').addEventListener('click',()=>{if(uf==='br'&&office!=='presidente'){$('#mapa').scrollIntoView({behavior:'smooth'});$('#stateSearch').focus();}else{$('#cityQuery').focus();$('#busca').scrollIntoView({behavior:'smooth'});}});
+  $('#stateRaceButton').addEventListener('click',showGovernorFromShortcut);
+  $('#stateRaceSummaryButton').addEventListener('click',showGovernorFromShortcut);
   $('#allBrazilBtn').addEventListener('click',()=>{changeUF('br');$('#resultados').scrollIntoView({behavior:'smooth'});});
   $('#refreshBtn').addEventListener('click',refreshResults);$('#mapRefresh').addEventListener('click',refreshMap);
   $('#stateSearch').addEventListener('input',renderStateList);
@@ -343,8 +438,8 @@ function init(){setTheme(readStore('urnaflash-theme','light'));$('#themeToggle')
     }
   });
 
-  setupCitySearch();setupSharing();updateHeadings();drawTiles();renderStateList();refreshResults();refreshMap();loadGeometry();checkAutomaticRound();cleanupOldSW();
-  refreshTimer=setInterval(()=>{if(document.hidden)return;refreshResults();refreshMap();checkAutomaticRound();},60_000);
+  setupCitySearch();setupSharing();updateHeadings();drawTiles();renderStateList();refreshResults();refreshMap();refreshGovernorSituation();loadGeometry();checkAutomaticRound();cleanupOldSW();
+  refreshTimer=setInterval(()=>{if(document.hidden)return;checkAutomaticRound();refreshResults();refreshMap();if(uf!=='br')refreshGovernorSituation();},60_000);
   document.addEventListener('visibilitychange',()=>{if(!document.hidden){refreshResults();refreshMap();checkAutomaticRound();}});
 }
 init();

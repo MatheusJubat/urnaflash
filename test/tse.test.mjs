@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {OFFICES,electionFromConfig,officialUrl,normalizeTseResult,toNum,parseMunicipalities,activeRoundFromResults,searchMunicipalities,normalizeSearch} from '../tse.mjs';
+import {OFFICES,electionFromConfig,officialUrl,normalizeTseResult,toNum,parseMunicipalities,activeRoundFromResults,governorSituationFromResults,searchMunicipalities,normalizeSearch} from '../tse.mjs';
 const config={pl:[{cd:'3220',c:'ele2026',dt:'04/10/2026',e:[
   {cd:'6257',cdt2:'6258',t:'1',abr:[{cd:'br',cp:[{cd:'1',ds:'Presidente'}]}]},
   {cd:'6259',cdt2:'6260',t:'1',abr:[{cd:'br',cp:[{cd:'3'},{cd:'5'},{cd:'6'},{cd:'7'},{cd:'8'}]}]}
@@ -62,4 +62,19 @@ test('busca municipal reconhece acentos, nomes e estado correto',()=>{
   assert.equal(normalizeSearch(' CARAMBÉI '),'carambei');
   assert.equal(searchMunicipalities(sample,'carambei')[0].code,'75221');
   assert.equal(searchMunicipalities(sample,'campinas','pr').length,0);
+});
+
+test('governador eleito oficialmente em primeiro turno nao abre falsa disputa do segundo',()=>{
+ const first={state:'ok',finished:true,candidates:[{name:'Pessoa oficial',party:'PART',number:'10',elected:true,votes:120}]};
+ const result=governorSituationFromResults(first,{state:'ok',candidates:[{name:'Outro',votes:30}]},{unlocked:true});
+ assert.equal(result.state,'decided-first');assert.equal(result.round,1);assert.equal(result.person.name,'Pessoa oficial');
+});
+test('segundo turno de governador so e divulgado quando tiver arquivo oficial',()=>{
+ const first={state:'ok',finished:true,candidates:[{name:'Pessoa A',elected:false,votes:100}]};
+ assert.equal(governorSituationFromResults(first,null,{unlocked:false}).state,'pending');
+ assert.equal(governorSituationFromResults(first,{state:'unavailable'},{unlocked:true}).state,'pending');
+ const partial={state:'ok',finished:false,progress:12,candidates:[{name:'Pessoa A',votes:100}]};
+ assert.equal(governorSituationFromResults(first,partial,{unlocked:true}).state,'counting-second');
+ const final={state:'ok',finished:true,progress:100,candidates:[{name:'Pessoa B',elected:true,votes:200}]};
+ assert.equal(governorSituationFromResults(first,final,{unlocked:true}).state,'decided-second');
 });

@@ -116,3 +116,49 @@ button:disabled{opacity:.42;cursor:not-allowed}
  .explorer-search{font-size:17px}
 }
 @media(prefers-reduced-motion:reduce){.geo-state{transition:none}}
+/* Versão 6: painel legível para acompanhar a totalização ao vivo */
+.national-summary{margin:0 0 22px;padding:26px 28px;display:grid;gap:23px}
+.national-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.national-heading h3{font-size:clamp(1.25rem,2vw,1.65rem);line-height:1.3;margin:6px 0}
+.national-heading p{margin:0;color:var(--muted);line-height:1.55}
+.national-status-chip{font-weight:800;font-size:.85rem;padding:9px 13px;border-radius:100px;background:var(--bg);border:1px solid var(--line);white-space:nowrap}
+.national-values{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.national-values>div{border:1px solid var(--line);border-radius:16px;padding:20px;min-width:0;display:flex;flex-direction:column;gap:9px;background:var(--bg)}
+.national-values>div>span{font-size:.88rem;font-weight:700;color:var(--muted)}
+.national-values>div>strong{font-size:clamp(1.45rem,2.4vw,2rem);line-height:1.15;overflow-wrap:anywhere;font-weight:850}
+.national-values small{font-size:.83rem;color:var(--muted);line-height:1.45}
+.national-values .progress-track{height:9px}
+.map-note{font-size:.88rem;color:var(--muted);margin:0 0 10px}
+.state-row{min-height:90px;gap:12px}
+.state-value{min-width:142px;text-align:right;max-width:65%}
+.state-value .value-main{font-size:.92rem;line-height:1.4;font-weight:800}
+.state-value small{font-size:.81rem;line-height:1.4}
+.state-row .state-progress-line{margin-top:7px;height:5px;border-radius:4px;background:var(--line);overflow:hidden;display:block}
+.state-row .state-progress-line span{height:100%;display:block;background:var(--blue)}
+.state-row .state-sub{font-size:.78rem;color:var(--muted);line-height:1.4}
+.state-row .state-totalized{color:var(--green);font-weight:750;font-size:.78rem}
+.geo-state-label{pointer-events:none;fill:#fff;font-size:11px;font-weight:800;paint-order:stroke;stroke:#16243a;stroke-width:2px;stroke-linejoin:round}
+.geo-state-progress{pointer-events:none;fill:#fff;font-size:10px;font-weight:700;paint-order:stroke;stroke:#16243a;stroke-width:2px;stroke-linejoin:round}
+.state-tile{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:49px}
+.state-tile small{font-size:.62rem;line-height:1;color:inherit;font-weight:750}
+.election-outcome{padding:20px 22px;border:1px solid var(--line);background:var(--bg);border-radius:15px;margin:12px 0 20px}
+.election-outcome[data-kind="elected"]{border-color:var(--green)}
+.election-outcome strong{font-size:clamp(1.1rem,2vw,1.4rem);line-height:1.3;display:block}
+.election-outcome p{margin:6px 0 0;font-size:.93rem;color:var(--muted);line-height:1.5}
+.choice[disabled]{opacity:.53;cursor:not-allowed}
+.round-unlock-hint{margin:10px 2px 0;font-size:.85rem;color:var(--muted);line-height:1.5}
+@media(max-width:800px){.national-summary{padding:18px;gap:16px}.national-heading{flex-wrap:wrap}.national-values{grid-template-columns:repeat(2,minmax(0,1fr))}.national-values>div{padding:15px}.national-values>div:last-child{grid-column:1/-1}.national-values>div>strong{font-size:1.45rem}.state-row{min-height:86px}.state-value{min-width:0}}
+@media(max-width:400px){.national-values{grid-template-columns:1fr}.national-values>div:last-child{grid-column:auto}.state-value{max-width:66%}.state-row .state-sub{font-size:.72rem}}
+
+/* Governo estadual: cartão sem filtros complexos, com toque confortável. */
+.race-card{display:grid;gap:13px;padding:19px;border:1px solid var(--line);border-radius:16px;background:var(--bg)}
+.race-head{display:flex;align-items:center;gap:13px}
+.race-icon{display:grid;place-items:center;flex:none;width:46px;height:46px;border-radius:13px;background:var(--blue-soft);font-size:23px;color:var(--blue)}
+.race-head>div{display:grid;gap:3px}.race-head strong{font-size:clamp(18px,1.7vw,22px);line-height:1.32;color:var(--ink)}
+.race-card p{margin:0;color:var(--muted);line-height:1.6;font-size:15px}
+.race-card>.button{min-height:52px;width:100%;font-size:16px}
+.race-card[data-state="decided-first"],.race-summary[data-state="decided-first"]{border-color:var(--green)}
+.race-summary{margin:14px 0;padding:18px 20px;background:var(--bg);border:1px solid var(--line);border-radius:15px;display:flex;align-items:center;gap:18px;justify-content:space-between}
+.race-summary[hidden]{display:none}.race-summary strong{font-size:17px;line-height:1.4}.race-summary p{margin:5px 0 0;color:var(--muted);line-height:1.5;font-size:14px}
+.race-summary .button{white-space:normal;min-height:52px;flex-shrink:0}
+@media(max-width:800px){.race-card{padding:16px}.race-summary{flex-direction:column;align-items:stretch;padding:16px}.race-summary .button{width:100%}}
