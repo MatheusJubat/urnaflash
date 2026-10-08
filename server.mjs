@@ -61,7 +61,7 @@ export const server=http.createServer(async (req,res)=>{
   let url;
   try { url=new URL(req.url, `http://${req.headers.host||'localhost'}`); }
   catch { return json(res,400,{error:'URL inválida'},head); }
-  if (url.pathname==='/api/health') return json(res,200,{ok:true,service:'urnaflash',version:'1.0.0'},head);
+  if (url.pathname==='/api/health') return json(res,200,{ok:true,service:'urnaflash',version:'2.0.0'},head);
   if (url.pathname==='/api/status') {
     try {
       const config=await getElectionConfig();
