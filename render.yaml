@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: urnaflash
+    runtime: node
+    plan: free
+    buildCommand: npm install --ignore-scripts
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Depois de registrar e apontar o domínio, configure no painel:
+      # PUBLIC_SITE_URL=https://urnaflash.com.br
