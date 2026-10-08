@@ -1,9 +1,24 @@
 // Fonte unica dos resultados: Tribunal Superior Eleitoral (EA11, EA12 e EA20).
 // ATENCAO: acesso oficial depende da publicacao efetiva dos dados. Nenhuma simulacao em producao.
-const BASE = 'https://resultados.tse.jus.br/oficial';
+export const BASE = 'https://resultados.tse.jus.br/oficial';
 const STATES = new Set('br ac al ap am ba ce df es go ma mt ms mg pa pb pr pe pi rj rn rs ro rr sc sp se to'.split(' '));
 export const STATE_CODES = [...STATES].filter(code=>code!=='br');
 export const OFFICIAL_CONFIG_URL = `${BASE}/comum/config/ele-c.json`;
+// Fotos pelo sqcand do EA20; URL oficial conforme a documentação do TSE.
+export function officialCandidatePhotoUrl(electionId,scope,sqcand){
+  const id=String(electionId||''),place=String(scope||'').toLowerCase(),candidate=String(sqcand||'');
+  if(!/^\d{1,6}$/.test(id)||!STATES.has(place)||!/^\d{8,18}$/.test(candidate))return null;
+  return `${BASE}/ele2026/${id}/fotos/${place}/${candidate}.jpeg`;
+}
+// e=s significa ELEITO OU CLASSIFICADO para o 2º turno: não confundir.
+export function statusOfCandidates(candidates,office,round,finished){
+  const marked=finished?(candidates||[]).filter(c=>c.officiallyMarked||c.elected):[];
+  if(round===1&&['presidente','governador'].includes(office)&&marked.length>=2){
+    return {kind:'runoff',markedNumbers:marked.map(c=>c.number),winner:null};
+  }
+  if(marked.length)return {kind:'elected',markedNumbers:marked.map(c=>c.number),winner:marked[0]};
+  return {kind:finished?'counted':'partial',markedNumbers:[],winner:null};
+}
 export const OFFICES = Object.freeze({
   presidente:{code:'1',label:'Presidente',group:'federal',rounds:[1,2]},
   governador:{code:'3',label:'Governador',group:'estadual',rounds:[1,2]},
@@ -93,7 +108,7 @@ export function normalizeTseResult(raw,{round,uf,office,municipality=''}){
             number:safeText(c.n),sqcand:/^\d{8,18}$/.test(String(c.sqcand||''))?String(c.sqcand):null,name:safeText(c.nmu||c.nm),
             party:safeText(party.sg||party.sgp||group.sg||''),
             votes:toNum(c.vap),percentage:toNum(c.pvap),
-            status:safeText(c.st),elected:c.e==='s' || c.e==='S',
+            status:safeText(c.st),officiallyMarked:c.e==='s' || c.e==='S',elected:false,
           });
         }
       }
@@ -102,6 +117,8 @@ export function normalizeTseResult(raw,{round,uf,office,municipality=''}){
   // Nao inventar resultado quando cargo veio vazio/inexistente.
   if(!candidates.length)throw new Error('Arquivo sem candidatos do cargo solicitado');
   candidates.sort((a,b)=>b.votes-a.votes||a.name.localeCompare(b.name,'pt-BR'));
+  const finished=raw.and==='f',decision=statusOfCandidates(candidates,office,round,finished);
+  for(const c of candidates){c.elected=decision.kind==='elected'&&decision.markedNumbers.includes(c.number);c.runoffQualified=decision.kind==='runoff'&&decision.markedNumbers.includes(c.number);}
   const total=toNum(raw.s?.ts),counted=toNum(raw.s?.st);
   const progress=total>0?counted/total*100:toNum(raw.s?.pst);
   return {
@@ -109,9 +126,11 @@ export function normalizeTseResult(raw,{round,uf,office,municipality=''}){
     source:'TSE · EA20',generatedAt:raw.dg&&raw.hg?`${raw.dg} ${raw.hg}`:null,
     progress:Math.max(0,Math.min(100,Number(progress.toFixed(2)))),
     sectionsCounted:counted,sectionsTotal:total,sectionsRemaining:total>0?Math.max(0,total-counted):null,
-    validVotes:toNum(raw.v?.tvn??raw.v?.vv),totalVotes:toNum(raw.v?.tv),
-    blankVotes:toNum(raw.v?.vb),nullVotes:toNum(raw.v?.vn),
-    finished:raw.and==='f',candidates,
+    // EA20: vv=válidos; tvn=total nulos (vn pode excluir nulos técnicos).
+    validVotes:toNum(raw.v?.vv),totalVotes:toNum(raw.v?.tv),
+    blankVotes:toNum(raw.v?.vb),nullVotes:toNum(raw.v?.tvn??raw.v?.vn),
+    voterTurnout:toNum(raw.e?.c),abstentions:toNum(raw.e?.a),
+    finished,decision,candidates,
   };
 }
 const readyResult=result=>result.candidates.some(c=>c.votes>0) && result.sectionsCounted>0;
@@ -125,7 +144,7 @@ export async function loadResult({round=1,uf='br',office='presidente',municipali
   if(round===2 && office==='governador'){
     const first=await loadResult({round:1,uf,office:'governador'});
     if(['ok','stale'].includes(first.state)&&first.finished){
-      const elected=first.candidates?.find(c=>c.elected);
+      const elected=first.decision?.kind==='elected'?first.candidates?.find(c=>c.elected):null;
       if(elected)return {state:'not-applicable',message:`${elected.name} aparece como eleito governador no primeiro turno segundo o TSE. Não há apuração de segundo turno para governador neste estado.`,firstRoundWinner:{name:elected.name,party:elected.party}};
     }
   }
@@ -138,7 +157,7 @@ export async function loadResult({round=1,uf='br',office='presidente',municipali
     const {value,stale}=await readCached(url,RESULTS_TTL);
     const parsed=normalizeTseResult(value,{round,uf,office,municipality});
     if(!readyResult(parsed))return {state:'awaiting',message:'Aguardando votos válidos e seções totalizadas publicados pelo TSE.'};
-    return {...parsed,state:stale?'stale':'ok',sourceUrl:url,
+    return {...parsed,state:stale?'stale':'ok',electionId:String(election.cd),sourceUrl:url,
       ...(stale?{message:'Última versão oficial em cache; atualização indisponível.'}:{})};
   }catch{return {state:'unavailable',message:'Dados oficiais ainda indisponíveis para esta seleção.'};}
 }
@@ -147,7 +166,7 @@ export async function loadResult({round=1,uf='br',office='presidente',municipali
 export function governorSituationFromResults(first,second=null,{unlocked=false}={}){
   const valid=value=>['ok','stale'].includes(value?.state);
   if(!valid(first))return {state:'unknown',message:'Não foi possível confirmar a situação do governo estadual no TSE.'};
-  const elected=first.finished?first.candidates?.find(c=>c.elected):null;
+  const elected=first.finished&&first.decision?.kind!=='runoff'?first.candidates?.find(c=>c.elected):null;
   if(elected)return {state:'decided-first',round:1,person:{name:elected.name,party:elected.party,number:elected.number},
     message:`${elected.name} aparece como eleito no 1º turno, conforme arquivo oficial do TSE.`};
   if(!first.finished)return {state:'checking-first',round:1,message:'A totalização do primeiro turno ainda não consta como encerrada.'};

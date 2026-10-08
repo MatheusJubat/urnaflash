@@ -1,9 +1,15 @@
 {
   "name": "urnaflash",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "private": true,
   "type": "module",
   "description": "UrnaFlash — painel eleitoral 2026, mapas estaduais, cargos e municipios, dados oficiais TSE",
-  "scripts": { "start": "node server.mjs", "dev": "node --watch server.mjs", "test": "node --test" },
-  "engines": { "node": ">=20" }
+  "scripts": {
+    "start": "node server.mjs",
+    "dev": "node --watch server.mjs",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  }
 }

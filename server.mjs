@@ -4,7 +4,7 @@ import {fileURLToPath} from 'node:url';
 import path from 'node:path';
 import {getElectionConfig,electionFromConfig,loadResult,loadStateMap,loadMunicipalities,getStates,OFFICES,searchCities,loadGovernorSituation} from './tse.mjs';
 import {REGIONS,regionBySlug,slugPath} from './regions.mjs';
-import {brasilDate,secondRoundUnlocked,defaultRound,SECOND_ROUND_DATE} from './schedule.mjs';
+import {brasilDate,secondRoundUnlocked,defaultRound,secondRoundPublicationOpen,SECOND_ROUND_DATE} from './schedule.mjs';
 
 const PORT=Number(process.env.PORT||3000), HOST=process.env.HOST||'0.0.0.0';
 const root=path.join(path.dirname(fileURLToPath(import.meta.url)),'public');
@@ -17,7 +17,7 @@ function security(res){
   res.setHeader('Referrer-Policy','strict-origin-when-cross-origin');
   res.setHeader('X-Frame-Options','DENY');
   res.setHeader('Permissions-Policy','camera=(), microphone=(), geolocation=()');
-  res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://raw.githubusercontent.com; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'");
+  res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://raw.githubusercontent.com https://resultados.tse.jus.br; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'");
 }
 function send(res,status,body,mime,head=false,cache='no-store'){
   res.writeHead(status,{'Content-Type':mime,'Cache-Control':cache});res.end(head?undefined:body);
@@ -65,20 +65,20 @@ async function getGeometry(kind,uf=''){
 export const server=http.createServer(async(req,res)=>{
   security(res);const head=req.method==='HEAD';if(req.method!=='GET'&&!head)return json(res,405,{error:'Metodo nao permitido'});
   let url;try{url=new URL(req.url,`http://${req.headers.host||'localhost'}`);}catch{return json(res,400,{error:'URL invalida'},head);}
-  if(url.pathname==='/api/health')return json(res,200,{ok:true,service:'urnaflash',version:'7.0.0'},head);
+  if(url.pathname==='/api/health')return json(res,200,{ok:true,service:'urnaflash',version:'8.0.0'},head);
   if(url.pathname==='/api/status'){
     try{const c=await getElectionConfig();return json(res,200,{source:'TSE',rounds:{'1':!!electionFromConfig(c,1),'2':!!electionFromConfig(c,2)},checkedAt:new Date().toISOString()},head);}catch{return json(res,503,{error:'Fonte TSE indisponivel'},head);}
   }
   if(url.pathname==='/api/auto'){
     const enabled=secondRoundUnlocked(),now=brasilDate();
     // Antes de 25/10 não consultar arquivos que podem nem estar publicados (evita 404 no TSE).
-    return json(res,200,{recommendedRound:defaultRound(),unlocked:enabled,brasilDate:now,
+    return json(res,200,{recommendedRound:defaultRound(),unlocked:enabled,publicationOpen:secondRoundPublicationOpen(),brasilDate:now,
       unlockDate:SECOND_ROUND_DATE,checkedAt:new Date().toISOString()},head);
   }
   if(url.pathname==='/api/governor-status'){
     const uf=(url.searchParams.get('uf')||'').toLowerCase();
     if(!IBGE_CODES[uf])return json(res,400,{state:'invalid',message:'Escolha um estado válido.'},head);
-    return json(res,200,await loadGovernorSituation(uf,{unlocked:secondRoundUnlocked()}),head);
+    return json(res,200,await loadGovernorSituation(uf,{unlocked:secondRoundPublicationOpen()}),head);
   }
   if(url.pathname==='/api/results'){
     const round=Number(url.searchParams.get('round')||1),office=url.searchParams.get('office')||'presidente';
@@ -87,6 +87,8 @@ export const server=http.createServer(async(req,res)=>{
     // A prévia antes da votação não consulta arquivos eleitorais futuros nem exibe números de teste.
     if(round===2&&!secondRoundUnlocked())return json(res,200,{state:'awaiting',round,preview:true,
       message:'Prévia do segundo turno. A apuração oficial será divulgada em 25/10/2026. Enquanto isso, explore estados, cidades e cargos sem votos simulados.'},head);
+    if(round===2&&!secondRoundPublicationOpen())return json(res,200,{state:'awaiting',round,
+      message:'Segundo turno de 25/10: aguardando a divulgação oficial do TSE, prevista a partir das 17h (horário de Brasília).'},head);
     const data=await loadResult({round,uf,office,municipality});
     return json(res,data.state==='invalid'?400:200,data,head);
   }
@@ -94,6 +96,8 @@ export const server=http.createServer(async(req,res)=>{
     const round=Number(url.searchParams.get('round')||1);if(![1,2].includes(round))return json(res,400,{state:'invalid'},head);
     if(round===2&&!secondRoundUnlocked())return json(res,200,{state:'awaiting',round,preview:true,states:[],
       message:'Prévia do segundo turno: aguardando os resultados oficiais do dia 25/10.'},head);
+    if(round===2&&!secondRoundPublicationOpen())return json(res,200,{state:'awaiting',round,states:[],
+      message:'A divulgação oficial do segundo turno está prevista a partir das 17h de Brasília.'},head);
     return json(res,200,await loadStateMap(round),head);
   }
   if(url.pathname==='/api/cities/search'){

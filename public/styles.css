@@ -247,3 +247,25 @@ button:focus-visible,input:focus-visible,a:focus-visible,[tabindex="0"]:focus-vi
 .selected-region-icon .state-flag{width:42px;height:28px}
 @media(max-width:900px){.hero{grid-template-columns:1fr;gap:14px}.today-card{max-width:none;justify-self:stretch}.candidate-section-intro{display:block}.candidate-section-intro span{display:block;margin-top:2px}}
 @media(max-width:700px){.hero{padding:19px 0 12px}.hero h1{font-size:clamp(30px,7.8vw,41px)}.hero p{font-size:15px}.topbar{display:none}.navline{min-height:65px}.brand b{font-size:23px}.mainnav{display:none}.today-middle{margin:8px 0}.today-symbol{width:43px;height:43px;font-size:25px}.section{padding-bottom:34px}.section-head h2{font-size:29px}.quick-overview{padding:13px;flex-wrap:wrap}.quick-overview-link{margin-left:0;width:100%;font-size:14px;min-height:30px}.candidate{grid-template-columns:26px 55px minmax(0,1fr);gap:10px;padding:13px}.candidate-portrait,.candidate-photo{width:54px;height:63px;font-size:16px}.candidate-name{font-size:16px}.candidate-meta{font-size:12px}.candidate-votes{grid-column:3;justify-self:start;display:flex;gap:10px;align-items:baseline}.candidate-votes strong{font-size:22px}.candidate-votes span{font-size:12px}.candidate-bar{grid-column:2 / -1;margin-top:0}.results-panel{padding:13px}.candidate-section-intro{margin-top:13px}.status-banner{margin:12px 0}.results-heading{align-items:flex-start}.selected-region-icon{display:none}}
+
+/* v8: leitura direta dos votos e filtro de estados acessível */
+.office-state-picker{background:var(--blue-soft);border:1px solid var(--blue);padding:22px;border-radius:18px;margin:18px 0 22px}
+.office-state-picker-header h3{font-size:clamp(19px,3vw,25px);margin:0 0 6px;color:var(--ink)}
+.office-state-picker-header p{font-size:15px;line-height:1.55;color:var(--muted);margin:0 0 15px}
+.office-state-picker label,.candidate-search-wrap label{font-weight:780;font-size:15px;display:block;margin-bottom:7px}
+.office-state-picker input,.candidate-search-wrap input{width:100%;height:54px;border:2px solid var(--line);border-radius:12px;background:var(--paper);color:var(--ink);padding:12px 14px;font-size:17px}
+.office-state-picker input:focus-visible,.candidate-search-wrap input:focus-visible{border-color:var(--blue)}
+.office-state-options{max-height:340px;overflow:auto;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:14px}
+.office-state-button{min-height:59px;display:flex;gap:10px;align-items:center;text-align:left;padding:10px;border-radius:11px;border:1px solid var(--line);color:var(--ink);background:var(--paper);font-weight:750;font-size:14px}
+.office-state-button:hover{border-color:var(--blue);background:var(--blue-soft)}
+.office-state-button img{width:34px;height:23px;object-fit:contain;flex:0 0 auto}
+.candidate-search-wrap{margin:15px 0 13px}
+.vote-breakdown{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:23px 0}
+.vote-breakdown-item{min-height:106px;padding:15px 17px;border:1px solid var(--line);background:var(--soft);border-radius:14px;display:flex;flex-direction:column;gap:6px}
+.vote-breakdown-item>span{font-size:14px;color:var(--muted);font-weight:720}
+.vote-breakdown-item>strong{font-size:clamp(17px,2vw,23px);font-variant-numeric:tabular-nums;color:var(--ink)}
+.vote-breakdown-item>small{font-size:12px;color:var(--muted)}
+.vote-breakdown-note{grid-column:1/-1;color:var(--muted);font-size:13px;line-height:1.6;margin:0}
+.candidate-photo{width:64px;height:72px;object-fit:cover;object-position:center top;border-radius:12px;border:1px solid var(--line);background:var(--soft)}
+@media(max-width:800px){.office-state-options{grid-template-columns:repeat(2,minmax(0,1fr))}.vote-breakdown{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:450px){.office-state-picker{padding:14px}.office-state-options{grid-template-columns:1fr}.vote-breakdown-item{padding:13px;min-height:94px}.vote-breakdown-item>strong{font-size:20px}}

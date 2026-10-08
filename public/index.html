@@ -80,6 +80,11 @@
             <div class="selected-actions"><button type="button" id="changePlaceBtn" class="button secondary">Buscar outra cidade</button><button type="button" id="clearSelectionBtn" class="button secondary" hidden>✕ Limpar seleção</button><button type="button" id="allBrazilBtn" class="button secondary">Ver Brasil</button><button type="button" id="refreshBtn" class="button secondary">↻ Atualizar</button></div>
           </div>
         </div>
+        <section id="officeStatePicker" class="office-state-picker" aria-label="Selecionar estado para consultar resultados" hidden>
+          <div class="office-state-picker-header"><h3 id="officeStateHeading">Em qual estado você quer consultar?</h3><p>Escolha um estado para ver a votação. Governadores, senadores e deputados não têm resultado nacional único.</p></div>
+          <label for="officeStateSearch">Buscar estado</label><input type="search" id="officeStateSearch" placeholder="Ex.: Paraná, São Paulo..." autocomplete="off">
+          <div id="officeStateOptions" class="office-state-options"></div>
+        </section>
         <div id="stateRaceSummary" class="race-summary" hidden aria-live="polite">
           <div><strong id="stateRaceSummaryTitle">Governador</strong><p id="stateRaceSummaryDescription">Buscando dados oficiais...</p></div>
           <button id="stateRaceSummaryButton" type="button" class="button secondary">Ver governador</button>
@@ -87,10 +92,11 @@
         <div id="statusBanner" class="status-banner" role="status"><span class="status-marker"></span><div><strong id="statusTitle">Conectando ao TSE</strong><p id="statusMessage">Aguarde a verificação dos resultados oficiais.</p></div></div>
         <div class="results-heading"><div><span class="eyebrow" id="officeCaption">PRESIDÊNCIA</span><h3 id="electionHeading">1º turno · Brasil</h3><p id="resultsSubtitle">Dados oficiais, quando disponibilizados</p></div><a id="tseLink" class="external-link" href="https://resultados.tse.jus.br/" target="_blank" rel="noopener noreferrer">Consultar TSE ↗</a></div>
         <div id="electionOutcome" class="election-outcome" aria-live="polite" hidden></div>
-        <div class="candidate-section-intro"><strong>Votação por candidato</strong><span>Ordem oficial dos votos. Fotos aparecem apenas quando verificadas por candidatura.</span></div>
+        <div class="candidate-section-intro"><strong>Votação por candidato</strong><span>Fotos dos candidatos vêm dos arquivos oficiais do TSE, quando disponíveis.</span></div>
+        <div id="candidateSearchWrap" class="candidate-search-wrap" hidden><label for="candidateSearch">Buscar candidato ou partido</label><input id="candidateSearch" type="search" placeholder="Digite nome, partido ou número" autocomplete="off"></div>
         <div id="candidateList" class="candidate-list"><div class="empty-message">Aguardando dados oficiais para a seleção.</div></div>
         <div id="moreBar" class="more-bar" hidden><button class="text-button" id="moreCandidates" type="button">Mostrar todos os candidatos ↓</button></div>
-        <div class="statistics"><div class="stat"><span>Seções totalizadas</span><strong id="progressPercent">—</strong><div class="progress-track"><span id="progressBar"></span></div><small id="sectionCounts">Aguardando dados</small></div><div class="stat"><span>Votos válidos</span><strong id="validVotes">—</strong><small>Conforme arquivo da Justiça Eleitoral</small></div><div class="stat"><span>Atualização do TSE</span><strong class="time-value" id="lastUpdated">—</strong><small id="progressText">Aguardando disponibilidade</small></div></div>
+        <div class="vote-breakdown" id="voteBreakdown" aria-label="Votos válidos, brancos, nulos e total" hidden></div><div class="statistics"><div class="stat"><span>Seções totalizadas</span><strong id="progressPercent">—</strong><div class="progress-track"><span id="progressBar"></span></div><small id="sectionCounts">Aguardando dados</small></div><div class="stat"><span>Votos válidos</span><strong id="validVotes">—</strong><small>Conforme arquivo da Justiça Eleitoral</small></div><div class="stat"><span>Atualização do TSE</span><strong class="time-value" id="lastUpdated">—</strong><small id="progressText">Aguardando disponibilidade</small></div></div>
       </div>
     </section>
     <section id="mapa" class="section map-section" aria-labelledby="mapTitle">
@@ -105,7 +111,7 @@
           <div class="panel-head"><div class="round-pill"><span id="mapRoundLabel">1º turno</span><span class="line-divider"></span><span>Presidência</span></div><button class="text-button" type="button" id="mapRefresh">↻ Atualizar mapa</button></div>
           <p id="mapHint" class="map-note" role="status">Escolha um estado. Cada UF exibe o avanço da totalização ao lado do mapa.</p>
           <div id="geoMap" class="geo-map" aria-label="Mapa do Brasil: selecione um estado para abrir o mapa dos municípios"><div class="loading-state">Carregando mapa do Brasil...</div></div>
-          <div class="map-legend"><span><i class="dot red"></i> Lula · 13</span><span><i class="dot green"></i> Flávio Bolsonaro · 22</span><span><i class="dot purple"></i> Outro candidato</span><span><i class="dot gray"></i> Sem dados</span></div>
+          <div class="map-legend"><span><i class="dot red"></i> Lula · 13</span><span><i class="dot green"></i> Flávio Bolsonaro · 22</span><span id="mapOtherLegend"><i class="dot purple"></i> Outro candidato</span><span><i class="dot gray"></i> Sem dados</span></div>
           <p class="caption">Cor = candidato à frente na UF, não vitória oficial. Porcentagens das seções são diferentes das porcentagens de votos. O mapa usa limites geográficos do IBGE quando disponíveis.</p>
         </div>
         <aside class="surface state-sidebar">

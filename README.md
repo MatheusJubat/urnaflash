@@ -1,62 +1,53 @@
-# UrnaFlash 7.0 — resultado primeiro, mapa como exploração
+# UrnaFlash 8.0 — Apuração nacional, estaduais e fotos oficiais
 
-Portal independente para consultar os resultados das eleições de 2026. Layout responsivo, modo claro/escuro, leitura acessível, visualização do Brasil e estados, consulta de cidades, apuração de presidente, governadores, senadores e deputados, com fonte oficial TSE.
+Portal responsivo e independente. Fonte eleitoral: **Tribunal Superior Eleitoral (TSE)**, com dados públicos EA11/EA12/EA20. O mapa geográfico utiliza malhas do IBGE. **Não tem vínculo institucional com o TSE e não inventa resultados.**
 
-## O que foi alterado nesta versão
+## O que foi corrigido na v8
 
-- Resultados e lista de candidatos aparecem **antes** do mapa para reduzir cliques, principalmente no celular.
-- Cartões com nome, partido, número, votos, percentual, foto verificada (se disponível) ou **avatar de iniciais**, nunca foto aleatória.
-- Campo de busca por cidade, primeiro/segundo turno, governadores e mapa preservados da versão 6.6.
-- Bandeiras das UFs na lista de estados e na indicação da região ativa. Elas usam SVGs do repositório open source [akagabi/bandeira-dos-estados-do-brasil](https://github.com/akagabi/bandeira-dos-estados-do-brasil) (licença MIT). Se o arquivo não carregar, a sigla da UF é exibida.
-- **Não contém números fictícios em produção**. A apuração deve ser validada diretamente na origem do TSE antes da divulgação pública.
+- **1º turno**: `cand.e = "s"` no EA20 significa **eleito OU classificado para o 2º turno**. Presidente e governador com **dois** candidatos assim marcados recebem a indicação **classificados para o 2º turno**, nunca “dois eleitos”. Se apenas um candidato é indicado no arquivo final, ele aparece como eleito. Senadores e deputados podem ter múltiplos eleitos, conforme a eleição e os registros oficiais.
+- **2º turno da presidência**: exibe os candidatos presentes no arquivo do TSE para essa votação (normalmente dois). A legenda do mapa deixa de exibir “Outro candidato” no segundo turno.
+- **Brancos e nulos**: novos cartões “Votos válidos”, “Votos em branco”, “Votos nulos”, “Total de votos”. Campos oficiais EA20: `v.vv`, `v.vb`, `v.tvn`, `v.tv`. Os percentuais das candidaturas seguem o arquivo TSE e consideram votos válidos. A proporção de brancos/nulos usa o total de votos.
+- **Fotos de candidatos**: o site forma o link a partir do `sqcand` do arquivo oficial e da respectiva eleição/UF: `https://resultados.tse.jus.br/oficial/ele2026/{eleicao}/fotos/{UF}/{sqcand}.jpeg`. Se a foto não estiver disponível, aparecem as iniciais; não substituímos por foto de outra pessoa. As imagens carregam sob demanda. Sem necessidade de pagar serviço de imagens.
+- **Governador, senador e deputados a partir de Brasil**: cartão grande para escolher estado, com busca por nome e bandeiras, no próprio painel de resultados. Os resultados desses cargos são estaduais, não nacionais.
+- **Filtro de candidato/partido/número**: aparece quando há mais de quatro candidatos (útil especialmente para deputados). Não sobrecarrega a tela de duas candidaturas do 2º turno.
+- **Apuração automática**: atualização em primeiro plano a cada 30 segundos, cache no servidor e atualização quando a aba volta a ficar ativa. Os dados exibidos são os publicados na última resposta do TSE, e pode haver atraso de publicação/rede.
+- **Dia 25/10**: o padrão do site passa para o 2º turno à 00:00 de Brasília, preservando acesso ao 1º turno. Até **17h** não tenta baixar arquivos da apuração do 2º turno para evitar 404 e bloqueios do TSE. A partir das 17h tenta carregar os arquivos oficiais; se não estiverem disponíveis, mostra “aguardando”, sem números fictícios.
+- **Vencedor**: “eleito” apenas na totalização final com indicação oficial apropriada. Uma liderança parcial ou 100% das seções, isoladamente, não comprovam eleição.
+- Mapa Brasil → estado → município; tocar novamente no estado ou município ativo volta à visão do Brasil; F5 também volta ao Brasil. Botão de modo escuro mantido.
 
-## Rodando localmente
+## Rodar localmente
 
 Requer Node.js 20+.
 
-```sh
+```bash
 npm install --ignore-scripts
 npm test
 npm start
 ```
 
-Abra `http://localhost:3000` (ou a porta informada em `PORT`).
+Abra `http://localhost:3000`.
 
-## Publicação no GitHub + Render
+## Publicar no Render (no serviço existente)
 
-Atualize os arquivos **da raiz** do repositório `urnaflash` (`server.mjs`, `tse.mjs`, `public/`, `test/`, `tools/` etc.) e faça commit na `main`. O Render já conectado poderá fazer Auto Deploy.
+1. Extraia o ZIP e envie **o conteúdo da pasta** à raiz do repositório GitHub `urnaflash`, mantendo `server.mjs`, `package.json` e `public/` na raiz.
+2. Commit na branch `main`. Se o Render estiver com Auto Deploy habilitado, ele publica automaticamente. **Não crie outro Web Service.**
+3. Render: Web Service, Node, Build `npm install --ignore-scripts`, Start `npm start`, Root Directory vazio.
+4. Teste a rota `/api/health`. Deve retornar `version: "8.0.0"`.
+5. Antes de divulgar, valide `/api/results?round=1&uf=br&office=presidente`, depois `/api/results?round=1&uf=pr&office=governador` e um município de sua escolha.
+6. Confira fotos, bandeiras e a consulta ao TSE no próprio domínio publicado (o ambiente de desenvolvimento pode não alcançar a CDN do TSE).
 
-- Serviço: **Web Service**, runtime **Node**.
-- Build: `npm install --ignore-scripts`
-- Start: `npm start`
-- Variáveis obrigatórias: nenhuma. `NODE_ENV=production` é opcional.
-- Não precisa de banco de dados ou outro serviço pago para a primeira versão.
-- Configure monitoramento e capacidade adequados antes de picos de tráfego: o Render Free pode hibernar e não tem garantia para alto volume.
+## Cuidados de operação
 
-## Fotos de candidatos (fonte oficial)
+- **O plano Free do Render hiberna por inatividade** e não garante capacidade para grandes picos de tráfego. Teste carga e monitore antes do dia da eleição.
+- A CDN do TSE limita requisições por IP e pode bloquear clientes que gerem muitos 404. O projeto usa cache e consulta em lotes; evite múltiplas réplicas fazendo varreduras independentes sem coordenação.
+- Sem um banco persistente, o cache é perdido quando o Render reinicia. Os votos continuam vindo do TSE.
+- Fotos pertencem ao acervo oficial do TSE e são exibidas diretamente a partir da URL oficial; imagens ausentes exibem avatares neutros.
+- Verifique as políticas eleitorais, de privacidade, acessibilidade e publicitárias antes de comercializar espaços no site. O portal é independente.
 
-As fotos NÃO são associadas pelo nome ou número partidário, para evitar confusão entre homônimos. O JSON oficial EA20 do TSE fornece `sqcand` (sequencial da candidatura). O frontend procura a foto somente se o arquivo tiver sido importado e estiver presente no `public/candidate-photos.json`.
+## Testes
 
-### Como importar fotos do TSE
+`npm test` cobre o parser EA20, códigos municipais, conclusão versus 2º turno, seleção de estados, votos válidos/brancos/nulos e o calendário de 25/10. Há testes adicionais com navegador Chromium usando **dados fictícios exclusivamente para teste**, nunca incluídos no conteúdo de produção.
 
-1. Abra a página oficial: [Candidatos — 2026, Dados Abertos TSE](https://dadosabertos.tse.jus.br/dataset/candidatos-2026).
-2. Baixe o arquivo de **Fotos de candidatos** da UF desejada (para a Presidência, escolha **BR**).
-3. Na sua máquina, rode `python tools/import_tse_photos.py caminho/para/fotos_2026_BR.zip` (também aceita uma pasta de imagens já extraídas).
-4. Confira se o índice `public/candidate-photos.json` foi gerado e se contém os sequenciais esperados. O importador aceita imagens reais JPEG/PNG/WebP com sequência numérica no nome do arquivo; caso o formato do ZIP oficial seja diferente, ajuste manualmente a associação após inspeção.
-5. Envie os novos arquivos em `public/candidate-photos/` e o índice gerado para o repositório. **A importação não é automática e o ZIP entregue não contém fotografias dos candidatos.** Até esse passo, serão mostrados avatares neutros com as iniciais.
+## Contato comercial
 
-Para reduzir a carga do projeto, é recomendável começar por presidente e governadores, sem colocar milhares de fotos de candidatos a deputado de uma vez no plano gratuito.
-
-## Fontes e transparência
-
-- Dados da votação: [TSE — Informações técnicas EA20](https://www.tse.jus.br/eleicoes/informacoes-tecnicas-sobre-a-divulgacao-de-resultados).
-- Fotos oficiais: [TSE — Candidatos 2026](https://dadosabertos.tse.jus.br/dataset/candidatos-2026).
-- Bandeiras: [akagabi — MIT](https://github.com/akagabi/bandeira-dos-estados-do-brasil).
-
-`/api/health` indica a versão. `/api/results?round=1&uf=br&office=presidente` permite testar se os votos reais estão chegando. Se o TSE estiver indisponível, o site deve apresentar aviso, nunca números inventados.
-
-## UX
-
-No celular, o usuário começa pela busca e pelos resultados. No desktop, a visão principal continua espaçosa. O mapa Brasil → estado → município permanece disponível para explorar. Ao clicar novamente no estado, volta ao Brasil inteiro; ao recarregar a página, também volta ao Brasil conforme especificado na versão anterior.
-
-**Não afirme que fotos e resultados ao vivo estão validados na internet antes de testar o deploy no Render.** Os testes de navegador desta versão usam dados simulados apenas para checagem de interface.
+`contatournaflash@gmail.com` — confirme que a conta já foi criada antes de divulgar o botão de anúncio.
