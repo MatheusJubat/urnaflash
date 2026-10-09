@@ -81,7 +81,7 @@
           </div>
         </div>
         <section id="officeStatePicker" class="office-state-picker" aria-label="Selecionar estado para consultar resultados" hidden>
-          <div class="office-state-picker-header"><h3 id="officeStateHeading">Em qual estado você quer consultar?</h3><p>Escolha um estado para ver a votação. Governadores, senadores e deputados não têm resultado nacional único.</p></div>
+          <div class="office-state-picker-header"><h3 id="officeStateHeading">Em qual estado você quer consultar?</h3><p>Toque na bandeira do estado desejado. A escolha atualiza os votos aqui mesmo, sem voltar ao começo da página.</p></div>
           <label for="officeStateSearch">Buscar estado</label><input type="search" id="officeStateSearch" placeholder="Ex.: Paraná, São Paulo..." autocomplete="off">
           <div id="officeStateOptions" class="office-state-options"></div>
         </section>
@@ -91,12 +91,7 @@
         </div>
         <div id="statusBanner" class="status-banner" role="status"><span class="status-marker"></span><div><strong id="statusTitle">Conectando ao TSE</strong><p id="statusMessage">Aguarde a verificação dos resultados oficiais.</p></div></div>
         <div class="results-heading"><div><span class="eyebrow" id="officeCaption">PRESIDÊNCIA</span><h3 id="electionHeading">1º turno · Brasil</h3><p id="resultsSubtitle">Dados oficiais, quando disponibilizados</p></div><a id="tseLink" class="external-link" href="https://resultados.tse.jus.br/" target="_blank" rel="noopener noreferrer">Consultar TSE ↗</a></div>
-        <div id="electionOutcome" class="election-outcome" aria-live="polite" hidden></div>
-        <div class="candidate-section-intro"><strong>Votação por candidato</strong><span>Fotos dos candidatos vêm dos arquivos oficiais do TSE, quando disponíveis.</span></div>
-        <div id="candidateSearchWrap" class="candidate-search-wrap" hidden><label for="candidateSearch">Buscar candidato ou partido</label><input id="candidateSearch" type="search" placeholder="Digite nome, partido ou número" autocomplete="off"></div>
-        <div id="candidateList" class="candidate-list"><div class="empty-message">Aguardando dados oficiais para a seleção.</div></div>
-        <div id="moreBar" class="more-bar" hidden><button class="text-button" id="moreCandidates" type="button">Mostrar todos os candidatos ↓</button></div>
-        <div class="vote-breakdown" id="voteBreakdown" aria-label="Votos válidos, brancos, nulos e total" hidden></div><div class="statistics"><div class="stat"><span>Seções totalizadas</span><strong id="progressPercent">—</strong><div class="progress-track"><span id="progressBar"></span></div><small id="sectionCounts">Aguardando dados</small></div><div class="stat"><span>Votos válidos</span><strong id="validVotes">—</strong><small>Conforme arquivo da Justiça Eleitoral</small></div><div class="stat"><span>Atualização do TSE</span><strong class="time-value" id="lastUpdated">—</strong><small id="progressText">Aguardando disponibilidade</small></div></div>
+        <div id="electionOutcome" class="election-outcome" aria-live="polite" hidden></div><a class="map-callout" href="#mapa"><span>🗺</span><span><strong>Explorar o Brasil no mapa</strong><small>Toque em um estado para ver os resultados e suas cidades.</small></span><span aria-hidden="true">→</span></a>
       </div>
     </section>
     <section id="mapa" class="section map-section" aria-labelledby="mapTitle">
@@ -140,6 +135,15 @@
         </aside>
       </div>
     </section>
+    <section id="candidatos" class="section candidate-only-section" aria-label="Lista e estatísticas de candidatos">
+      <div class="surface results-panel candidate-only-panel">
+        <div class="candidate-section-intro"><div><strong>Votação por candidato</strong><span id="candidateCount" class="candidate-count" role="status" aria-live="polite"></span></div><a class="candidate-map-link" href="#mapa">🗺 Ver mapa do Brasil</a></div>
+        <div id="candidateSearchWrap" class="candidate-search-wrap" hidden><label for="candidateSearch">Buscar candidato ou partido</label><input id="candidateSearch" type="search" placeholder="Digite nome, partido ou número" autocomplete="off"></div>
+        <button type="button" id="electedFilterBtn" class="elected-filter-button" aria-pressed="false" hidden>Ver somente eleitos</button><div id="candidateList" class="candidate-list"><div class="empty-message">Aguardando dados oficiais para a seleção.</div></div>
+        <div id="moreBar" class="more-bar" hidden><button class="text-button" id="moreCandidates" type="button">Mostrar todos os candidatos ↓</button></div>
+        <div class="vote-breakdown" id="voteBreakdown" aria-label="Votos válidos, brancos, nulos e total" hidden></div><div class="statistics"><div class="stat"><span>Seções totalizadas</span><strong id="progressPercent">—</strong><div class="progress-track"><span id="progressBar"></span></div><small id="sectionCounts">Aguardando dados</small></div><div class="stat"><span>Votos válidos</span><strong id="validVotes">—</strong><small>Conforme arquivo da Justiça Eleitoral</small></div><div class="stat"><span>Atualização do TSE</span><strong class="time-value" id="lastUpdated">—</strong><small id="progressText">Aguardando disponibilidade</small></div></div>
+      </div>
+    </section>
     <section id="cidades" class="section city-section" aria-labelledby="cityHeading">
       <div class="section-head"><div><span class="eyebrow">SUA CIDADE</span><h2 id="cityHeading">Como votou seu município?</h2><p>Digite o nome da cidade no início da página para ver os votos recebidos nela. Sem códigos nem listas enormes.</p></div></div>
       <div class="surface city-content-simple"><div class="city-description"><span class="city-icon" aria-hidden="true">⌖</span><h3 id="cityCardTitle">Sua cidade, sem complicação</h3><p id="cityCardDescription">Basta digitar o nome da sua cidade no campo de busca no início da página. Mostraremos o município correto e os votos oficiais disponíveis.</p></div>
@@ -150,5 +154,8 @@
     <section class="method-section" id="sobre"><div><span class="eyebrow">TRANSPARÊNCIA</span><h2>Entenda os números</h2><p>O UrnaFlash é independente, gratuito e não possui vínculo institucional com o TSE.</p></div><div class="method-items"><div><b>Dados oficiais</b><p>Somente números obtidos dos arquivos públicos da Justiça Eleitoral.</p></div><div><b>Parcial não é resultado final</b><p>A liderança em um estado pode mudar enquanto as seções são totalizadas. Conclusão da contagem não equivale, por si só, à confirmação do eleito.</p></div><div><b>Atualizações responsáveis</b><p>Se a fonte ficar indisponível, sinalizamos a falha em vez de inventar votos.</p></div></div></section>
   </main>
   <footer class="footer"><div class="shell footline"><a class="footbrand" href="/">urna<span>flash</span><small> Informação para todos.</small></a><div><a href="https://resultados.tse.jus.br/" rel="noopener noreferrer" target="_blank">Fonte oficial · TSE ↗</a><span>© 2026 UrnaFlash · Portal independente</span></div></div></footer>
+  <nav class="mobile-quicknav" aria-label="Navegação rápida no celular">
+    <a href="#resultados">▤<span>Apuração</span></a><a href="#mapa">▧<span>Mapa</span></a><a href="#candidatos">◉<span>Candidatos</span></a><a href="#busca">⌕<span>Minha cidade</span></a>
+  </nav>
   <div id="toast" class="toast" role="status" hidden></div>
 </body></html>

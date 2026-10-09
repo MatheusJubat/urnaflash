@@ -14,7 +14,7 @@ const fmtVotes=n=>Number(n||0).toLocaleString('pt-BR');
 const fmtPct=n=>Number(n||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'%';
 const fetchJson=async path=>{const response=await fetch(path,{cache:'no-store'});if(!response.ok)throw Error('HTTP '+response.status);return response.json();};
 const el=(tag,className,text)=>{const node=document.createElement(tag);if(className)node.className=className;if(text!==undefined)node.textContent=text;return node;};
-let round=1,office='presidente',uf='br',municipality='',cityName='',manualTurn=false,allCandidates=false,candidateFilter='';
+let round=1,office='presidente',uf='br',municipality='',cityName='',manualTurn=false,candidateFilter='',shownCandidateCount=8,onlyElected=false,pickerForcedOpen=false;
 let resultsSequence=0,mapSequence=0,statesData={},geoFeatures=null,mapRound=1,cityCache={},refreshTimer;
 let cityGeoFeatures=null,cityGeoUF='',cityVoteCache=new Map();
 let explorerOpenedFrom=null,explorerLoadSequence=0,latestResult=null,viewZoom=1,mapViewBox=null,ignoreNextMapClick=false;
@@ -37,7 +37,7 @@ function navigationIsReload(){
 }
 function announceSelection(text){const node=$('#selectionAnnouncement');if(node)node.textContent=text;}
 function setStatus(kind,title,msg){const node=$('#statusBanner');node.dataset.status=kind;$('#statusTitle').textContent=title;$('#statusMessage').textContent=msg;}
-function resetCandidateList(){$('#electionOutcome').hidden=true;allCandidates=false;$('#voteBreakdown').hidden=true;$('#candidateSearchWrap').hidden=true;candidateFilter='';$('#candidateSearch').value='';$('#candidateList').replaceChildren(el('div','empty-message','Aguardando a publicação dos resultados para esta seleção.'));$('#moreBar').hidden=true;
+function resetCandidateList(){$('#electionOutcome').hidden=true;shownCandidateCount=8;onlyElected=false;$('#electedFilterBtn').hidden=true;$('#electedFilterBtn').setAttribute('aria-pressed','false');$('#electedFilterBtn').textContent='Mostrar apenas eleitos';$('#voteBreakdown').hidden=true;$('#candidateSearchWrap').hidden=true;candidateFilter='';$('#candidateSearch').value='';$('#candidateList').replaceChildren(el('div','empty-message','Aguardando a publicação dos resultados para esta seleção.'));$('#moreBar').hidden=true;$('#candidateCount').textContent='';
   for(const [key,txt] of [['progressPercent','—'],['validVotes','—'],['lastUpdated','—'],['sectionCounts','Sem informação'],['progressText','Sem informação']])$('#'+key).textContent=txt;
   $('#progressBar').style.width='0%';}
 function dateInBrasilia(){const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());const pick=t=>parts.find(p=>p.type===t)?.value;return `${pick('year')}-${pick('month')}-${pick('day')}`;}
@@ -53,11 +53,14 @@ function renderAutoStatus(){
 }
 function populateOffices(){
   if(round===2&&!['presidente','governador'].includes(office))office='presidente';
-  if(office==='deputado-distrital'&&uf!=='df')office='deputado-estadual';
+  // Deputado distrital existe apenas no DF: a escolha leva diretamente à UF correta.
+  if(office==='deputado-distrital'&&uf!=='df')uf='df';
   if(office==='deputado-estadual'&&uf==='df')office='deputado-distrital';
   document.querySelectorAll('#officeButtons [data-office]').forEach(btn=>{
     const code=btn.dataset.office;
-    const unavailable=round===2&&!['presidente','governador'].includes(code)||code==='deputado-distrital'&&uf!=='df'||code==='deputado-estadual'&&uf==='df';
+    // Ao tocar em Deputado distrital durante o 2º turno, redirecionamos para o 1º turno no DF.
+    const unavailable=(round===2&&!['presidente','governador','deputado-distrital'].includes(code))||(code==='deputado-estadual'&&uf==='df');
+    btn.hidden=code==='deputado-estadual'&&uf==='df';
     btn.disabled=unavailable;btn.classList.toggle('active',office===code);btn.setAttribute('aria-pressed',String(office===code));
   });
 }
@@ -71,7 +74,7 @@ function updateHeadings(){populateOffices();
   $('#selectedPlace').textContent=municipality?title:uf==='br'&&office!=='presidente'?'Selecione um estado':uf==='br'?'Brasil inteiro':STATE_NAMES[uf];
   const regionMark=$('#activeRegionFlag');if(regionMark)regionMark.replaceChildren(stateFlag(uf));
   $('#selectedPlaceHint').textContent=municipality?'Resultado municipal · dados do TSE':uf==='br'?'Busque sua cidade acima ou escolha um estado no mapa.':'Resultado estadual · clique no mapa para trocar.';
-  $('#changePlaceBtn').textContent=uf==='br'&&office!=='presidente'?'Escolher estado no mapa':'Buscar outra cidade';
+  $('#changePlaceBtn').textContent=uf==='br'?'Escolher estado':'Trocar estado';
   $('#heroRound').textContent=round+'º turno';$('#heroTitle').textContent=round===1?'Resultados do 1º turno':electionDayStarted?'Apuração do 2º turno':'Prévia do 2º turno';
   $('#heroSubtitle').textContent=round===1?'4 de outubro · Dados oficiais do TSE':electionDayStarted?'25 de outubro · Acompanhamento oficial':'Disponível para testar · votação em 25/10';
   $('#cityCardTitle').textContent=municipality?`Você está vendo ${cityName||'sua cidade'}`:'Sua cidade, sem complicação';
@@ -83,14 +86,21 @@ function updateHeadings(){populateOffices();
   $('#allBrazilBtn').setAttribute('aria-label',uf==='br'?'Exibindo Brasil inteiro':'Limpar seleção e voltar aos resultados do Brasil');
   renderAutoStatus();applyURL();
 }
-function changeRound(value,manual=true){if(![1,2].includes(value))return;round=value;if(manual)manualTurn=true;
+function changeRound(value,manual=true){if(![1,2].includes(value))return;round=value;if(manual)manualTurn=true;pickerForcedOpen=false;
   // Nunca mostrar dados do turno anterior enquanto chegam novas respostas oficiais.
   statesData={};latestNational=null;renderScopeSummary();renderStateList();drawMap();
   updateHeadings();resetCandidateList();refreshResults();refreshMap();}
-function changeOffice(value){if(!OFFICES[value])return;office=value;
-  if(office==='deputado-distrital'&&uf!=='df'){office='deputado-estadual';toast('Deputado distrital é exclusivo do Distrito Federal. Selecione DF no mapa.');return;}
-  updateHeadings();resetCandidateList();refreshResults();}
-function changeUF(code){if(!STATE_NAMES[code])return;if(code==='br'){resetToBrazil({focus:'results'});return;}uf=code;municipality='';cityName='';
+function changeOffice(value){if(!OFFICES[value])return;
+  office=value;pickerForcedOpen=false;
+  if(value==='deputado-distrital'){
+    // Nunca deixar o cargo bloqueado sem explicacao. Redirecionar para a unica UF que o elege.
+    if(round===2){round=1;manualTurn=true;toast('Deputados distritais são eleitos no 1º turno. Abrimos esse resultado no Distrito Federal.');}
+    uf='df';municipality='';cityName='';$('#cityQuery').value='';renderCitySuggestions([]);
+    closeCityMap({restoreFocus:false});refreshMap();refreshGovernorSituation();
+  }
+  updateHeadings();resetCandidateList();refreshResults();drawMap();renderScopeSummary();
+}
+function changeUF(code){if(!STATE_NAMES[code])return;pickerForcedOpen=false;if(code==='br'){resetToBrazil({focus:'results'});return;}uf=code;municipality='';cityName='';
   $('#cityQuery').value='';renderCitySuggestions([]);showCityFeedback('Busque sua cidade pelo nome para ver os votos municipais.');
   updateHeadings();resetCandidateList();refreshResults();drawMap();refreshGovernorSituation();renderScopeSummary();renderExplorerStateVotes();}
 // Reset único: mapa, cidade, botões, resultado e URL precisam concordar.
@@ -99,7 +109,7 @@ function resetToBrazil({focus='map',scroll=false}={}){
   ++citySearchRequest;clearTimeout(searchTimer);
   // Fechar o explorador antes de atualizar o mapa; não devolver foco a um polígono removido.
   closeCityMap({restoreFocus:false});
-  uf='br';municipality='';cityName='';office='presidente';
+  uf='br';municipality='';cityName='';office='presidente';pickerForcedOpen=false;
   $('#cityQuery').value='';$('#explorerSearch').value='';$('#stateSearch').value='';
   renderCitySuggestions([]);showCityFeedback('Mostrando Brasil inteiro. Digite o nome de uma cidade para consultar os votos.');
   $('#explorerSuggestions').hidden=true;
@@ -119,10 +129,10 @@ function photoForCandidate(candidate){
   return `${PHOTO_BASE}${encodeURIComponent(id)}/fotos/${scope}/${sq}.jpeg`;
 }
 function updateStatePicker(){
-  const show=office!=='presidente'&&uf==='br';
+  const show=(office!=='presidente'&&uf==='br')||pickerForcedOpen;
   $('#officeStatePicker').hidden=!show;
   if(!show)return;
-  $('#officeStateHeading').textContent=`Em qual estado você quer ver ${OFFICES[office]?.toLowerCase()}?`;
+  $('#officeStateHeading').textContent=`Qual estado você quer consultar?`;
   renderOfficeStates();
 }
 function renderOfficeStates(){
@@ -131,7 +141,7 @@ function renderOfficeStates(){
   for(const [code,name] of STATES){
     if(!normalizeName(name+' '+code).includes(q))continue;
     const b=el('button','office-state-button');b.type='button';b.append(stateFlag(code),el('span','',`${name} · ${code.toUpperCase()}`));
-    b.addEventListener('click',()=>{changeUF(code);$('#officeStateSearch').value='';$('#officeStatePicker').hidden=true;$('#resultados').scrollIntoView({behavior:'smooth',block:'start'});});
+    b.addEventListener('click',()=>{changeUF(code);$('#officeStateSearch').value='';pickerForcedOpen=false;$('#officeStatePicker').hidden=true;$('#resultsTitle').scrollIntoView({behavior:'smooth',block:'start'});announceSelection(`${name} selecionado. Resultados atualizados.`);});
     root.append(b);
   }
   if(!root.children.length)root.append(el('p','empty-message','Não encontramos esse estado.'));
@@ -153,20 +163,34 @@ function candidateElement(candidate,i){
 let latestCandidates=[];
 function paintCandidates(){
   const term=normalizeName(candidateFilter);
-  const matches=term?latestCandidates.filter(c=>normalizeName(`${c.name} ${c.party} ${c.number}`).includes(term)):latestCandidates;
-  const max=allCandidates||term?matches.length:Math.min(matches.length,8);
-  $('#candidateList').replaceChildren(...matches.slice(0,max).map(candidateElement));
-  if(!matches.length)$('#candidateList').append(el('p','empty-message','Nenhum candidato encontrado. Tente outro nome ou partido.'));
-  $('#moreBar').hidden=matches.length<=8||allCandidates||Boolean(term);
+  const candidates=onlyElected?latestCandidates.filter(c=>c.elected):latestCandidates;
+  const matches=term?candidates.filter(c=>normalizeName(`${c.name} ${c.party} ${c.number}`).includes(term)):candidates;
+  const subset=matches.slice(0,shownCandidateCount);
+  $('#candidateList').replaceChildren(...subset.map((person,i)=>candidateElement(person,i)));
+  if(!matches.length)$('#candidateList').append(el('p','empty-message',onlyElected?'Nenhum eleito encontrado nesta pesquisa.':'Nenhum candidato encontrado. Tente outro nome ou partido.'));
+  $('#moreBar').hidden=matches.length<=shownCandidateCount;
+  $('#moreCandidates').textContent=`Mostrar mais candidatos (${fmtVotes(matches.length-shownCandidateCount)} restantes) ↓`;
+  $('#candidateCount').textContent=`${fmtVotes(Math.min(shownCandidateCount,matches.length))} de ${fmtVotes(matches.length)} candidaturas`;
 }
-function showResults(data){latestResult=data;latestCandidates=data.candidates||[];allCandidates=false;
+function showResults(data){latestResult=data;latestCandidates=data.candidates||[];shownCandidateCount=8;onlyElected=false;
   $('#candidateSearchWrap').hidden=latestCandidates.length<=4;
+  const legislative=['deputado-federal','deputado-estadual','deputado-distrital'].includes(office);
+  const electedCount=latestCandidates.filter(c=>c.elected).length;
+  $('#electedFilterBtn').hidden=!legislative||electedCount===0;
+  $('#electedFilterBtn').textContent=`Ver somente eleitos (${electedCount})`;$('#electedFilterBtn').setAttribute('aria-pressed','false');
   paintCandidates();updateExplorerSummary(data);renderVoteBreakdown(data);
   const outcome=$('#electionOutcome'),elected=data.finished?data.candidates.filter(c=>c.elected):[];
   outcome.replaceChildren();outcome.hidden=false;
   if(data.decision?.kind==='runoff'){
     outcome.dataset.kind='finished';outcome.append(el('strong','','Candidatos classificados para o 2º turno'),el('p','',`${data.candidates.filter(c=>c.runoffQualified).map(c=>c.name).join(' e ')}. Classificação informada pelo TSE; não são eleitos no 1º turno.`));
-  }else if(elected.length){outcome.dataset.kind='elected';outcome.append(el('strong','',`Resultado oficial: ${elected.map(c=>c.name).join(', ')}`),el('p','','Eleição informada pelo TSE para esta disputa.'));}
+  }else if(elected.length){
+    outcome.dataset.kind='elected';
+    if(['deputado-federal','deputado-estadual','deputado-distrital'].includes(office)){
+      outcome.append(el('strong','',`${fmtVotes(elected.length)} candidaturas marcadas como eleitas pelo TSE`),el('p','','Consulte os nomes nos cartões abaixo. Use a busca ou toque em “Ver somente eleitos” para encontrar um candidato.'));
+    }else{
+      outcome.append(el('strong','',`Eleito conforme TSE: ${elected[0]?.name||'Candidato'}`),el('p','','Resultado informado no arquivo oficial desta disputa.'));
+    }
+  }
   else if(data.finished){outcome.dataset.kind='finished';outcome.append(el('strong','','Totalização encerrada'),el('p','','A totalização consta como encerrada, sem indicação de eleito no arquivo consultado.'));}
   else{outcome.dataset.kind='partial';outcome.append(el('strong','',`${data.candidates[0]?.name||'Candidato'} está à frente nesta consulta`),el('p','',`${fmtPct(data.candidates[0]?.percentage||0)} dos votos válidos informados até agora. Parcial: os números podem mudar.`));}
 
@@ -316,7 +340,7 @@ async function refreshMap(){const seq=++mapSequence;mapRound=round;$('#statesRea
 }
 async function loadGeometry(){try{const data=await fetchJson('/api/geo/states');if(data?.features?.length){geoFeatures=data.features;drawMap();}}catch{drawTiles();}}
 function renderGovernorSituation(data){
-  const show=uf!=='br',card=$('#stateRaceCard'),summary=$('#stateRaceSummary');
+  const show=uf!=='br'&&['presidente','governador'].includes(office),card=$('#stateRaceCard'),summary=$('#stateRaceSummary');
   summary.hidden=!show;
   if(!show)return;
   const label=STATE_NAMES[uf]||uf.toUpperCase();
@@ -561,7 +585,12 @@ function init(){setTheme(readStore('urnaflash-theme','light'));$('#themeToggle')
   if(municipality){cityName=uf==='pr'&&municipality==='75221'?'Carambeí':`Município ${municipality}`;}
   document.querySelectorAll('#turnButtons [data-round]').forEach(btn=>btn.addEventListener('click',()=>changeRound(Number(btn.dataset.round))));
   document.querySelectorAll('#officeButtons [data-office]').forEach(btn=>btn.addEventListener('click',()=>changeOffice(btn.dataset.office)));
-  $('#changePlaceBtn').addEventListener('click',()=>{if(uf==='br'&&office!=='presidente'){$('#mapa').scrollIntoView({behavior:'smooth'});$('#stateSearch').focus();}else{$('#cityQuery').focus();$('#busca').scrollIntoView({behavior:'smooth'});}});
+  $('#changePlaceBtn').addEventListener('click',()=>{
+    pickerForcedOpen=!pickerForcedOpen;
+    updateStatePicker();
+    if(pickerForcedOpen){$('#officeStatePicker').scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'nearest'});$('#officeStateSearch').focus({preventScroll:true});}
+    else $('#changePlaceBtn').focus();
+  });
   $('#stateRaceButton').addEventListener('click',showGovernorFromShortcut);
   $('#stateRaceSummaryButton').addEventListener('click',showGovernorFromShortcut);
   $('#allBrazilBtn').addEventListener('click',()=>resetToBrazil({focus:'results',scroll:true}));
@@ -571,8 +600,9 @@ function init(){setTheme(readStore('urnaflash-theme','light'));$('#themeToggle')
   $('#refreshBtn').addEventListener('click',refreshResults);$('#mapRefresh').addEventListener('click',refreshMap);
   $('#stateSearch').addEventListener('input',renderStateList);
   $('#officeStateSearch').addEventListener('input',renderOfficeStates);
-  $('#candidateSearch').addEventListener('input',()=>{candidateFilter=$('#candidateSearch').value;paintCandidates();});
-  $('#moreCandidates').addEventListener('click',()=>{allCandidates=true;paintCandidates();});
+  $('#candidateSearch').addEventListener('input',()=>{candidateFilter=$('#candidateSearch').value;shownCandidateCount=8;paintCandidates();});
+  $('#electedFilterBtn').addEventListener('click',()=>{onlyElected=!onlyElected;shownCandidateCount=8;$('#electedFilterBtn').setAttribute('aria-pressed',String(onlyElected));$('#electedFilterBtn').textContent=onlyElected?'✓ Mostrando somente eleitos · Ver todos':'Ver somente eleitos ('+latestCandidates.filter(c=>c.elected).length+')';paintCandidates();});
+  $('#moreCandidates').addEventListener('click',()=>{shownCandidateCount+=12;paintCandidates();});
   $('#cityMapToggle').addEventListener('click',()=>{explorerOpenedFrom=document.activeElement;openCityMap();$('#mapa').scrollIntoView({behavior:'smooth',block:'start'});});
   $('#cityMapClose').addEventListener('click',()=>resetToBrazil({focus:'map',scroll:true}));
   $('#explorerSearch').addEventListener('input',renderExplorerSuggestions);

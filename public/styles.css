@@ -269,3 +269,44 @@ button:focus-visible,input:focus-visible,a:focus-visible,[tabindex="0"]:focus-vi
 .candidate-photo{width:64px;height:72px;object-fit:cover;object-position:center top;border-radius:12px;border:1px solid var(--line);background:var(--soft)}
 @media(max-width:800px){.office-state-options{grid-template-columns:repeat(2,minmax(0,1fr))}.vote-breakdown{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:450px){.office-state-picker{padding:14px}.office-state-options{grid-template-columns:1fr}.vote-breakdown-item{padding:13px;min-height:94px}.vote-breakdown-item>strong{font-size:20px}}
+
+/* UrnaFlash 8.1: mapa antes da lista, resumo enxuto e navegação inclusiva */
+.map-callout{display:flex;align-items:center;gap:15px;text-decoration:none;color:var(--ink);background:var(--blue-soft);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-top:15px;min-height:68px}
+.map-callout>span:first-child{font-size:27px}.map-callout>span:last-child{margin-left:auto;color:var(--blue);font-size:25px}
+.map-callout strong,.map-callout small{display:block}.map-callout strong{font-size:16px;line-height:1.4}.map-callout small{font-size:13px;color:var(--muted);line-height:1.45}
+.map-callout:hover,.map-callout:focus-visible{border-color:var(--blue)}
+.candidate-only-section{scroll-margin-top:90px}.candidate-only-panel{padding:23px}
+.candidate-section-intro{align-items:center}.candidate-section-intro>div{display:grid;gap:4px}.candidate-section-intro .candidate-count{font-size:14px;color:var(--muted)}
+.candidate-map-link{font-weight:750;font-size:15px;white-space:nowrap;color:var(--blue);padding:10px 5px}
+.election-outcome{overflow-wrap:anywhere}.election-outcome strong{font-size:clamp(17px,2vw,22px);line-height:1.4}.election-outcome p{line-height:1.5}
+.elected-filter-button{margin:9px 0 13px;min-height:50px;border:1.5px solid var(--blue);border-radius:11px;padding:12px 16px;background:var(--paper);color:var(--blue);font-size:15px;font-weight:750}
+.elected-filter-button[aria-pressed="true"]{background:var(--blue-soft)}
+.office-state-options{overscroll-behavior:contain}.office-state-button{min-height:64px}
+.mobile-quicknav{display:none}
+@media(max-width:700px){
+  body{padding-bottom:72px}
+  .mobile-quicknav{position:fixed;bottom:0;left:0;right:0;z-index:100;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));background:var(--paper);border-top:1px solid var(--line);padding:6px max(6px,env(safe-area-inset-left)) max(8px,env(safe-area-inset-bottom));box-shadow:0 -8px 25px rgba(12,28,50,.08)}
+  .mobile-quicknav a{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:52px;gap:1px;color:var(--blue);font-size:19px;text-decoration:none;font-weight:800}
+  .mobile-quicknav a span{font-size:11px;color:var(--ink);white-space:nowrap}
+  .map-callout{padding:14px 12px}.map-callout small{font-size:12px}
+  .candidate-only-panel{padding:14px}.candidate-section-intro{align-items:flex-start;flex-wrap:wrap}.candidate-map-link{font-size:14px}
+  #officeStatePicker{scroll-margin-top:90px}
+}
+@media(prefers-reduced-motion:reduce){.mobile-quicknav *{scroll-behavior:auto}}
+
+/* Ajuste final de legibilidade: nenhuma etiqueta colada ao nome da região. */
+.selected-area>div:nth-child(2){display:grid;gap:5px;flex:1 1 220px;min-width:0;line-height:1.4}
+.selected-area>div:nth-child(2) strong{font-size:clamp(19px,2vw,23px);line-height:1.35;overflow-wrap:anywhere;display:block}
+.selected-area>div:nth-child(2) small{display:block;line-height:1.5}
+.selected-actions{flex:0 1 530px;min-width:0}
+#officeButtons .choice[hidden]{display:none!important}
+@media(max-width:700px){
+ .selected-area{padding:16px;gap:14px}
+ .selected-area>div:nth-child(2){width:100%}
+ .selected-actions{width:100%;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .selected-actions button{min-width:0;white-space:normal;line-height:1.3;padding:10px;min-height:50px;font-size:14px}
+}
+@media(max-width:700px){
+ .selected-area>div:nth-child(2){flex:none;min-height:0}
+ .selected-actions{flex:none;min-height:0}
+}

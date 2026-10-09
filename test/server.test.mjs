@@ -10,7 +10,7 @@ test('pagina inicial e paginas SEO regionais respondem',async()=>{
  const b=await req('/eleicoes-2026/parana');assert.equal(b.status,200);assert.match(await b.text(),/Eleições 2026 em Paraná/);
 });
 test('rotas de saúde e sitemap funcionam',async()=>{
- assert.equal((await (await req('/api/health')).json()).version,'8.0.0');
+ assert.equal((await (await req('/api/health')).json()).version,'8.1.0');
  const r=await req('/sitemap.xml');assert.equal(r.status,200);assert.match(await r.text(),/eleicoes-2026\/acre/);
 });
 test('API rejeita parametros indevidos',async()=>{
