@@ -21,9 +21,10 @@ test('botão trocar estado abre seletor contextual, sem remeter ao topo',()=>{
   assert.match(js,/officeStatePicker'\)\.scrollIntoView/);
   assert.doesNotMatch(js,/\$\('#changePlaceBtn'\)\.addEventListener\('click',\(\)=>\{if\(uf/);
 });
-test('deputado distrital redireciona para DF e primeiro turno sem botão bloqueado',()=>{
-  assert.match(js,/if\(value==='deputado-distrital'\)/);
-  assert.match(js,/uf='df';municipality='';cityName=''/);
-  assert.match(js,/if\(round===2\)\{round=1;manualTurn=true/);
-  assert.doesNotMatch(js,/code==='deputado-distrital'&&uf!=='df'/);
+test('deputado distrital aparece apenas no DF e só existe no 1º turno',()=>{
+  assert.match(js,/district&&uf!=='df'/);
+  assert.match(js,/round===2&&onlyFirst/);
+  assert.match(js,/if\(uf==='df'&&office==='deputado-estadual'\)/);
+  assert.match(js,/if\(uf!=='df'&&office==='deputado-distrital'\)/);
+  assert.match(js,/value==='deputado-distrital'&&uf!=='df'/);
 });

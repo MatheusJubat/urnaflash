@@ -50,18 +50,29 @@
           <div class="focus-progress"><div class="focus-progress-top"><strong id="focusProgressLabel">Seções totalizadas</strong><strong id="focusProgressValue">—</strong></div><div class="progress-track"><span id="focusProgressBar"></span></div><p id="focusVisitMessage">A consulta é atualizada automaticamente.</p></div>
           <div id="focusVotesMini" class="focus-votes-mini" hidden></div>
         </section>
-        <details id="filterDisclosure" class="filter-disclosure"><summary><span>⚙ Trocar cargo ou ajustar o local</span><span aria-hidden="true">⌄</span></summary>
-        <div class="friendly-filters" aria-label="Escolha os resultados">
-          <div class="filter-group"><div class="filter-topline"><strong>Cargo</strong><span>Escolha o resultado</span></div>
-            <div class="choice-row office-choices" id="officeButtons" role="group" aria-label="Cargo eleitoral">
-              <button class="choice active" type="button" data-office="presidente" aria-pressed="true">Presidente</button>
-              <button class="choice" type="button" data-office="governador" aria-pressed="false">Governador</button>
-              <button class="choice" type="button" data-office="senador" aria-pressed="false">Senador</button>
-              <button class="choice" type="button" data-office="deputado-federal" aria-pressed="false">Deputado federal</button>
-              <button class="choice" type="button" data-office="deputado-estadual" aria-pressed="false">Deputado estadual</button>
-              <button class="choice" type="button" data-office="deputado-distrital" aria-pressed="false">Deputado distrital</button>
-            </div>
+        <section class="office-quick-nav" aria-label="Escolher cargo eleitoral">
+          <div class="office-quick-head"><strong id="officeQuickTitle">Consultar outro cargo</strong><span id="officeQuickTip">Escolha o cargo. Os votos mudam para o mesmo local.</span></div>
+          <div class="choice-row office-choices" id="officeButtons" role="group" aria-label="Cargo eleitoral">
+            <button class="choice active" type="button" data-office="presidente" aria-pressed="true">Presidente</button>
+            <button class="choice" type="button" data-office="governador" aria-pressed="false">Governador</button>
+            <button class="choice" type="button" data-office="senador" aria-pressed="false">Senador</button>
+            <button class="choice" type="button" data-office="deputado-federal" aria-pressed="false">Deputado federal</button>
+            <button class="choice" type="button" data-office="deputado-estadual" aria-pressed="false">Deputado estadual</button>
+            <button class="choice" type="button" data-office="deputado-distrital" aria-pressed="false">Deputado distrital</button>
           </div>
+          <button type="button" id="firstRoundOfficesBtn" class="first-round-offices" hidden>Ver votos para senador e deputados no 1º turno →</button>
+        </section>
+        <section id="localVoteFinder" class="local-vote-finder" aria-label="Pesquisar votação da cidade" hidden>
+          <span class="eyebrow">VOTOS NA SUA CIDADE</span>
+          <h3 id="localVoteTitle">Como sua cidade votou?</h3>
+          <p id="localVoteDescription">Consulte todos os candidatos que constam nos dados municipais do TSE.</p>
+          <div class="local-vote-search-line"><label for="localVoteSearch">Buscar um candidato pelo nome, partido ou número</label>
+            <div class="local-vote-search-controls"><input type="search" id="localVoteSearch" placeholder="Digite um nome, partido ou número" autocomplete="off" aria-describedby="localVoteSearchStatus"><button type="button" class="button primary" id="localVoteOpen">Ver votos →</button></div>
+          </div>
+          <p id="localVoteSearchStatus" class="local-vote-search-status" role="status" aria-live="polite">A busca encontra candidatos além dos primeiros colocados.</p>
+        </section>
+        <details id="filterDisclosure" class="filter-disclosure"><summary><span>⌖ Alterar estado ou cidade</span><span aria-hidden="true">⌄</span></summary>
+        <div class="friendly-filters" aria-label="Alterar o local da consulta">
           <div class="selected-area"><span id="activeRegionFlag" class="selected-region-icon" aria-hidden="true">🇧🇷</span><div><span>Local consultado</span><strong id="selectedPlace">Brasil inteiro</strong><small id="selectedPlaceHint">Clique no mapa para consultar um estado ou busque sua cidade acima.</small></div>
             <div class="selected-actions"><button type="button" id="changePlaceBtn" class="button secondary">Buscar outra cidade</button><button type="button" id="clearSelectionBtn" class="button secondary" hidden>✕ Limpar seleção</button><button type="button" id="allBrazilBtn" class="button secondary">Ver Brasil</button><button type="button" id="refreshBtn" class="button secondary">↻ Atualizar</button></div>
           </div>
@@ -83,10 +94,10 @@
     </section>
     <section id="candidatos" class="section candidate-only-section" aria-label="Detalhes dos candidatos e votação">
       <details class="surface candidate-disclosure" id="candidateDisclosure">
-        <summary><span><strong>Lista completa de candidatos e votos</strong><small>Fotos, partidos, busca, votos brancos e nulos</small></span><span class="details-chevron" aria-hidden="true">⌄</span></summary>
+        <summary><span><strong id="candidateDetailTitle">Lista completa de candidatos e votos</strong><small id="candidateDetailSubtitle">Encontre qualquer candidato informado pelo TSE</small></span><span class="details-chevron" aria-hidden="true">⌄</span></summary>
       <div class="results-panel candidate-only-panel">
         <div class="candidate-section-intro"><div><strong>Votação por candidato</strong><span id="candidateCount" class="candidate-count" role="status" aria-live="polite"></span></div><a class="candidate-map-link" href="#mapa">🗺 Ver mapa do Brasil</a></div>
-        <div id="candidateSearchWrap" class="candidate-search-wrap" hidden><label for="candidateSearch">Buscar candidato ou partido</label><input id="candidateSearch" type="search" placeholder="Digite nome, partido ou número" autocomplete="off"></div>
+        <div id="candidateSearchWrap" class="candidate-search-wrap" hidden><label for="candidateSearch" id="candidateSearchLabel">Buscar candidato, partido ou número</label><input id="candidateSearch" type="search" placeholder="Digite nome, partido ou número" autocomplete="off"></div>
         <button type="button" id="electedFilterBtn" class="elected-filter-button" aria-pressed="false" hidden>Ver somente eleitos</button><div id="candidateList" class="candidate-list"><div class="empty-message">Aguardando dados oficiais para a seleção.</div></div>
         <div id="moreBar" class="more-bar" hidden><button class="text-button" id="moreCandidates" type="button">Mostrar todos os candidatos ↓</button></div>
         <div class="vote-breakdown" id="voteBreakdown" aria-label="Votos válidos, brancos, nulos e total" hidden></div><div class="statistics"><div class="stat"><span>Seções totalizadas</span><strong id="progressPercent">—</strong><div class="progress-track"><span id="progressBar"></span></div><small id="sectionCounts">Aguardando dados</small></div><div class="stat"><span>Votos válidos</span><strong id="validVotes">—</strong><small>Conforme arquivo da Justiça Eleitoral</small></div><div class="stat"><span>Atualização do TSE</span><strong class="time-value" id="lastUpdated">—</strong><small id="progressText">Aguardando disponibilidade</small></div></div>

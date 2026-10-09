@@ -509,3 +509,32 @@ button:focus-visible,input:focus-visible,a:focus-visible,[tabindex="0"]:focus-vi
  .city-search-box .city-hero-search{padding:0;margin:0}
  .city-search-box #cityFindBtn{width:100%}
 }
+
+/* v9.1: navigation guided by place, not by technical selection sequence */
+.office-quick-nav{border:1px solid var(--line);border-radius:15px;padding:16px;margin:16px 0;background:var(--paper)}
+.office-quick-head{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:5px 14px;margin-bottom:12px}
+.office-quick-head strong{font-weight:850;font-size:17px}
+.office-quick-head span{font-size:12px;color:var(--muted)}
+.office-quick-nav .office-choices{gap:8px}
+.office-quick-nav .office-choices .choice{min-width:0;min-height:48px;padding:11px 15px;white-space:nowrap}
+.first-round-offices{display:block;background:var(--blue-soft);color:var(--blue);border:1px solid var(--line);border-radius:11px;min-height:48px;margin-top:12px;padding:12px 16px;font-weight:780;text-align:left}
+.first-round-offices[hidden]{display:none}
+.local-vote-finder{border:2px solid var(--blue);border-radius:16px;padding:18px;background:var(--blue-soft);margin:14px 0}
+.local-vote-finder[hidden]{display:none}
+.local-vote-finder h3{font-size:clamp(19px,2.1vw,24px);letter-spacing:-.04em;margin:7px 0}
+.local-vote-finder p{font-size:13px;line-height:1.5;color:var(--ink);margin:0 0 13px}
+.local-vote-search-line label{font-size:14px;font-weight:750;display:block;margin-bottom:9px}
+.local-vote-search-controls{display:flex;gap:9px;align-items:center}
+.local-vote-search-controls input{min-height:52px;min-width:0;flex:1;background:var(--paper);color:var(--ink);border:1.5px solid var(--line);border-radius:11px;padding:12px 13px;font-size:16px}
+.local-vote-search-controls .button{white-space:nowrap;min-height:52px}
+.local-vote-finder .local-vote-search-status{font-size:12px;color:var(--muted);margin:9px 0 0}
+#candidatos{scroll-margin-top:90px}
+#localVoteFinder{scroll-margin-top:90px}
+@media(max-width:700px){
+  .office-quick-nav{padding:12px;margin:12px 0}
+  .office-quick-nav .office-choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .office-quick-nav .office-choices .choice{min-width:0;width:100%;min-height:49px;white-space:normal}
+  .local-vote-finder{padding:13px}
+  .local-vote-search-controls{flex-direction:column;align-items:stretch}
+  .local-vote-search-controls .button{width:100%;justify-content:center}
+}

@@ -54,17 +54,23 @@ function renderAutoStatus(){
 }
 function populateOffices(){
   if(round===2&&!['presidente','governador'].includes(office))office='presidente';
-  // Deputado distrital existe apenas no DF: a escolha leva diretamente à UF correta.
-  if(office==='deputado-distrital'&&uf!=='df')uf='df';
-  if(office==='deputado-estadual'&&uf==='df')office='deputado-distrital';
-  document.querySelectorAll('#officeButtons [data-office]').forEach(btn=>{
+  if(uf==='df'&&office==='deputado-estadual')office='deputado-distrital';
+  if(uf!=='df'&&office==='deputado-distrital')office=uf==='br'?'presidente':'deputado-estadual';
+  for(const btn of document.querySelectorAll('#officeButtons [data-office]')){
     const code=btn.dataset.office;
-    // Ao tocar em Deputado distrital durante o 2º turno, redirecionamos para o 1º turno no DF.
-    const unavailable=(round===2&&!['presidente','governador','deputado-distrital'].includes(code))||(code==='deputado-estadual'&&uf==='df');
-    btn.hidden=code==='deputado-estadual'&&uf==='df';
-    btn.disabled=unavailable;btn.classList.toggle('active',office===code);btn.setAttribute('aria-pressed',String(office===code));
-  });
+    const district=code==='deputado-distrital';
+    const state=code==='deputado-estadual';
+    const onlyFirst=!['presidente','governador'].includes(code);
+    btn.hidden=(district&&uf!=='df')||(state&&uf==='df')||(round===2&&onlyFirst);
+    btn.disabled=false;
+    btn.classList.toggle('active',office===code);
+    btn.setAttribute('aria-pressed',String(office===code));
+  }
+  $('#firstRoundOfficesBtn').hidden=round!==2;
+  $('#officeQuickTitle').textContent=municipality?`Resultados de ${cityName}`:uf==='br'?'Outros cargos eleitorais':`Resultados de ${STATE_NAMES[uf]}`;
+  $('#officeQuickTip').textContent=round===2?'Neste turno há presidente e, quando aplicável, governador.':uf==='br'?'Para governador e deputados, escolha um estado.':'Toque no cargo para ver os votos neste mesmo local.';
 }
+
 function updateHeadings(){populateOffices();
   document.querySelectorAll('#turnButtons [data-round]').forEach(btn=>{const active=Number(btn.dataset.round)===round;btn.classList.toggle('active',active);btn.setAttribute('aria-pressed',String(active));});
   $('#mapRoundLabel').textContent=round+'º turno';$('#mapOtherLegend').hidden=round===2;
@@ -78,6 +84,7 @@ function updateHeadings(){populateOffices();
   $('#changePlaceBtn').textContent=uf==='br'?'Escolher estado':'Trocar estado';
   $('#heroRound').textContent=round+'º turno';$('#heroTitle').textContent=round===1?'Resultados do 1º turno':electionDayStarted?'Apuração do 2º turno':'Prévia do 2º turno';
   $('#heroSubtitle').textContent=round===1?'4 de outubro · Dados oficiais do TSE':electionDayStarted?'25 de outubro · Acompanhamento oficial':'Disponível para testar · votação em 25/10';
+  updateLocalVoteFinder();
   $('#cityCardTitle').textContent=municipality?`Você está vendo ${cityName||'sua cidade'}`:'Sua cidade, sem complicação';
   $('#cityCardDescription').textContent=municipality?`Mostramos os votos de ${OFFICES[office].toLowerCase()} em ${cityName||'seu município'}, ${STATE_NAMES[uf]}. Para trocar de cidade, basta usar a busca no topo.`:'Digite o nome da sua cidade no campo no início da página. Não precisa procurar códigos nem navegar por uma lista enorme.';
   $('#cityMapToggle').disabled=uf==='br';
@@ -92,17 +99,20 @@ function changeRound(value,manual=true){if(![1,2].includes(value))return;round=v
   // Nunca mostrar dados do turno anterior enquanto chegam novas respostas oficiais.
   statesData={};latestNational=null;renderScopeSummary();renderStateList();drawMap();renderInsights();
   updateHeadings();resetCandidateList();refreshResults();refreshMap();}
-function changeOffice(value){if(!OFFICES[value])return;$('#filterDisclosure').open=true;
-  office=value;pickerForcedOpen=false;
-  if(value==='deputado-distrital'){
-    // Nunca deixar o cargo bloqueado sem explicacao. Redirecionar para a unica UF que o elege.
-    if(round===2){round=1;manualTurn=true;toast('Deputados distritais são eleitos no 1º turno. Abrimos esse resultado no Distrito Federal.');}
-    uf='df';municipality='';cityName='';$('#cityQuery').value='';renderCitySuggestions([]);
-    closeCityMap({restoreFocus:false});refreshMap();refreshGovernorSituation();
+function changeOffice(value){if(!OFFICES[value])return;
+  if(value==='deputado-distrital'&&uf!=='df')return;
+  $('#filterDisclosure').open=false;
+  if(round===2&&!['presidente','governador'].includes(value)){
+    round=1;manualTurn=true;
+    toast('Senadores e deputados foram votados no 1º turno. Abrimos essa votação.');
   }
+  office=value;pickerForcedOpen=false;
   updateHeadings();resetCandidateList();refreshResults();drawMap();renderScopeSummary();
 }
+
 function changeUF(code){if(!STATE_NAMES[code])return;pickerForcedOpen=false;if(code==='br'){resetToBrazil({focus:'results'});return;}uf=code;municipality='';cityName='';
+  if(office==='deputado-distrital'&&uf!=='df')office='deputado-estadual';
+  if(office==='deputado-estadual'&&uf==='df')office='deputado-distrital';
   $('#cityQuery').value='';renderCitySuggestions([]);showCityFeedback('Busque sua cidade pelo nome para ver os votos municipais.');
   updateHeadings();resetCandidateList();refreshResults();drawMap();refreshGovernorSituation();renderScopeSummary();renderExplorerStateVotes();}
 // Reset único: mapa, cidade, botões, resultado e URL precisam concordar.
@@ -148,6 +158,33 @@ function renderOfficeStates(){
   }
   if(!root.children.length)root.append(el('p','empty-message','Não encontramos esse estado.'));
 }
+function isLegislativeOffice(value=office){return ['deputado-federal','deputado-estadual','deputado-distrital'].includes(value);}
+function updateLocalVoteFinder(){
+  const enabled=Boolean(municipality&&cityName&&(isLegislativeOffice(office)||office==='senador'));
+  $('#localVoteFinder').hidden=!enabled;
+  $('#localVoteTitle').textContent=enabled?`Quem recebeu votos em ${cityName}?`:'Como sua cidade votou?';
+  $('#localVoteDescription').textContent=enabled?`Confira os votos em ${cityName} (${uf.toUpperCase()}) para ${OFFICES[office].toLowerCase()}. A votação municipal é diferente da votação total do estado.`:'Encontre os votos registrados no município.';
+  $('#candidateDetailTitle').textContent=enabled?`Todos os candidatos · ${cityName}`:'Lista completa de candidatos e votos';
+  $('#candidateDetailSubtitle').textContent=enabled?`Votos em ${cityName}, não no estado inteiro`:'Pesquise nome, número ou partido e consulte os detalhes';
+  $('#candidateSearchLabel').textContent=enabled?`Buscar nos votos de ${cityName}`:'Buscar candidato, partido ou número';
+  if(!enabled){$('#localVoteSearch').value='';$('#localVoteSearchStatus').textContent='A busca encontra candidatos além dos primeiros colocados.';}
+}
+function syncCityCandidateQuery(){
+  const term=$('#localVoteSearch').value;
+  candidateFilter=term;$('#candidateSearch').value=term;
+  shownCandidateCount=12;onlyElected=false;
+  if(latestResult?.candidates?.length){
+    paintCandidates();
+    const total=latestCandidates.filter(c=>normalizeName(`${c.name} ${c.party} ${c.number}`).includes(normalizeName(term))).length;
+    $('#localVoteSearchStatus').textContent=term.trim()?`${fmtVotes(total)} candidaturas encontradas nesta consulta municipal. Toque em “Ver votos” para abrir os resultados.`:`${fmtVotes(latestCandidates.length)} candidaturas disponíveis. Pesquise pelo nome ou toque em “Ver votos”.`;
+  }else $('#localVoteSearchStatus').textContent='Aguardando dados oficiais da cidade para realizar a busca.';
+}
+function openCityCandidateResults(){
+  $('#candidateDisclosure').open=true;
+  syncCityCandidateQuery();
+  const target=$('#candidatos');target.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
+  $('#candidateSearch').focus({preventScroll:true});
+}
 function candidateElement(candidate,i){
   const node=el('div','candidate');node.dataset.identity=candidate.number;
   node.append(el('span','candidate-rank',String(i+1).padStart(2,'0')));
@@ -155,10 +192,10 @@ function candidateElement(candidate,i){
   const photo=candidatePhotos.get(String(candidate.sqcand||'')) || photoForCandidate(candidate);
   if(photo){const img=el('img','candidate-photo');img.src=photo;img.loading=i>2?'lazy':'eager';img.decoding='async';img.alt='';img.addEventListener('error',()=>img.replaceWith(portrait),{once:true});node.append(img);}else node.append(portrait);
   const main=el('div','candidate-details');main.append(el('div','candidate-name',candidate.name||'Nome não informado'),el('div','candidate-meta',`${candidate.party||'Partido não identificado'} · Nº ${candidate.number||'—'}`));
-  if(candidate.elected&&latestResult?.finished)main.append(el('span','tiny-badge','Eleito, conforme o TSE'));
+  if(!municipality&&candidate.elected&&latestResult?.finished)main.append(el('span','tiny-badge','Eleito, conforme o TSE'));
   else if(candidate.runoffQualified)main.append(el('span','tiny-badge','Classificado para o 2º turno'));
   node.append(main);
-  const stats=el('div','candidate-votes');stats.append(el('strong','',fmtPct(candidate.percentage)),el('span','',`${fmtVotes(candidate.votes)} votos`));node.append(stats);
+  const stats=el('div','candidate-votes');stats.append(el('strong','',fmtPct(candidate.percentage)),el('span','',`${fmtVotes(candidate.votes)} votos${municipality?' nesta cidade':''}`));node.append(stats);
   const bar=el('div','candidate-bar'),fill=el('span');fill.style.width=`${Math.max(0,Math.min(100,candidate.percentage))}%`;bar.append(fill);node.append(bar);
   return node;
 }
@@ -194,7 +231,7 @@ function focusCandidateCard(candidate,index,phase){
   const numbers=el('div','focus-person-numbers');numbers.append(el('strong','',fmtPct(candidate.percentage)),el('small','',`${fmtVotes(candidate.votes)} votos`));
   card.append(head,numbers);
   const track=el('div','focus-person-track'),bar=el('span');bar.style.width=`${Math.min(100,Math.max(0,Number(candidate.percentage)||0))}%`;track.append(bar);card.append(track);
-  if(phase==='elected'&&candidate.elected)card.append(el('span','focus-person-label-elected','Eleito, conforme o TSE'));
+  if(!municipality&&phase==='elected'&&candidate.elected)card.append(el('span','focus-person-label-elected','Eleito, conforme o TSE'));
   return card;
 }
 function getVisitChange(data){
@@ -216,10 +253,10 @@ function renderFocus(data){
   const phase=focusPhaseFor(data),place=municipality?cityName:(STATE_NAMES[uf]||'Brasil');
   const legislative=['deputado-federal','deputado-estadual','deputado-distrital'].includes(office);
   $('#liveFocus').dataset.phase=phase;
-  $('#focusPhase').textContent=phase==='elected'?'RESULTADO CONFIRMADO PELO TSE':phase==='runoff'?'CLASSIFICAÇÃO PARA O 2º TURNO':phase==='counted'?'TOTALIZAÇÃO ENCERRADA':'APURAÇÃO PARCIAL';
-  const winner=phase==='elected'&&!legislative&&office!=='senador'?data.candidates.find(c=>c.elected):null;
-  $('#focusTitle').textContent=winner?`${winner.name} · eleito segundo o TSE`:phase==='elected'&&(legislative||office==='senador')?'Eleitos informados pelo TSE':phase==='runoff'?'Candidatos classificados para o 2º turno':phase==='counted'?'Seções totalizadas neste recorte':legislative?'Mais votados até agora':uf==='br'&&!municipality?'Quem está à frente no Brasil?':`Quem está à frente em ${place}?`;
-  $('#focusDescription').textContent=legislative?'Para deputados, o mais votado não é necessariamente eleito. Consulte a lista com as marcações oficiais.':winner?'Resultado indicado nos arquivos oficiais, sem projeção do UrnaFlash.':phase==='runoff'?'A classificação para o segundo turno está indicada pelo TSE. Não significa eleição no primeiro turno.':phase==='counted'?'A contagem de seções terminou. A confirmação de eleito, quando existir, será indicada separadamente.':'Estes números são parciais e podem mudar conforme novas seções chegam.';
+  $('#focusPhase').textContent=municipality?'VOTOS NESTE MUNICÍPIO':phase==='elected'?'RESULTADO CONFIRMADO PELO TSE':phase==='runoff'?'CLASSIFICAÇÃO PARA O 2º TURNO':phase==='counted'?'TOTALIZAÇÃO ENCERRADA':'APURAÇÃO PARCIAL';
+  const winner=!municipality&&phase==='elected'&&!legislative&&office!=='senador'?data.candidates.find(c=>c.elected):null;
+  $('#focusTitle').textContent=municipality?`Como ${cityName} votou para ${OFFICES[office].toLowerCase()}?`:winner?`${winner.name} · eleito segundo o TSE`:phase==='elected'&&(legislative||office==='senador')?'Eleitos informados pelo TSE':phase==='runoff'?'Candidatos classificados para o 2º turno':phase==='counted'?'Seções totalizadas neste recorte':legislative?'Mais votados até agora':uf==='br'&&!municipality?'Quem está à frente no Brasil?':`Quem está à frente em ${place}?`;
+  $('#focusDescription').textContent=municipality?`Estes são os votos registrados em ${cityName}. Use a busca abaixo para encontrar qualquer candidatura presente no arquivo municipal do TSE. A eleição de deputados depende do resultado estadual.`:legislative?'Para deputados, o mais votado não é necessariamente eleito. Consulte a lista com as marcações oficiais.':winner?'Resultado indicado nos arquivos oficiais, sem projeção do UrnaFlash.':phase==='runoff'?'A classificação para o segundo turno está indicada pelo TSE. Não significa eleição no primeiro turno.':phase==='counted'?'A contagem de seções terminou. A confirmação de eleito, quando existir, será indicada separadamente.':'Estes números são parciais e podem mudar conforme novas seções chegam.';
   $('#focusUpdated').textContent=data.generatedAt?`Atualização TSE: ${data.generatedAt}`:'Fonte: TSE';
   const featured=legislative?data.candidates.slice(0,2):data.candidates.slice(0,Math.min(2,data.candidates.length));
   $('#focusCandidates').replaceChildren(...featured.map((c,i)=>focusCandidateCard(c,i,phase)));
@@ -268,15 +305,16 @@ function paintCandidates(){
   if(!matches.length)$('#candidateList').append(el('p','empty-message',onlyElected?'Nenhum eleito encontrado nesta pesquisa.':'Nenhum candidato encontrado. Tente outro nome ou partido.'));
   $('#moreBar').hidden=matches.length<=shownCandidateCount;
   $('#moreCandidates').textContent=`Mostrar mais candidatos (${fmtVotes(matches.length-shownCandidateCount)} restantes) ↓`;
-  $('#candidateCount').textContent=`${fmtVotes(Math.min(shownCandidateCount,matches.length))} de ${fmtVotes(matches.length)} candidaturas`;
+  $('#candidateCount').textContent=`${fmtVotes(Math.min(shownCandidateCount,matches.length))} de ${fmtVotes(matches.length)} candidaturas${municipality?' · votos nesta cidade':''}`;
 }
-function showResults(data){latestResult=data;latestCandidates=data.candidates||[];shownCandidateCount=8;onlyElected=false;
-  $('#candidateSearchWrap').hidden=latestCandidates.length<=4;
+function showResults(data){latestResult=data;latestCandidates=data.candidates||[];shownCandidateCount=municipality?12:8;onlyElected=false;
+  if(municipality){$('#candidateDisclosure').open=true;$('#localVoteSearch').value='';candidateFilter='';$('#candidateSearch').value='';updateLocalVoteFinder();}
+  $('#candidateSearchWrap').hidden=!municipality&&latestCandidates.length<=4;
   const legislative=['deputado-federal','deputado-estadual','deputado-distrital'].includes(office);
   const electedCount=latestCandidates.filter(c=>c.elected).length;
-  $('#electedFilterBtn').hidden=!legislative||electedCount===0;
+  $('#electedFilterBtn').hidden=Boolean(municipality)||!legislative||electedCount===0;
   $('#electedFilterBtn').textContent=`Ver somente eleitos (${electedCount})`;$('#electedFilterBtn').setAttribute('aria-pressed','false');
-  paintCandidates();updateExplorerSummary(data);renderVoteBreakdown(data);renderFocus(data);
+  paintCandidates();if(municipality)syncCityCandidateQuery();updateExplorerSummary(data);renderVoteBreakdown(data);renderFocus(data);
   const outcome=$('#electionOutcome'),elected=data.finished?data.candidates.filter(c=>c.elected):[];
   outcome.replaceChildren();outcome.hidden=false;
   if(data.decision?.kind==='runoff'){
@@ -292,7 +330,7 @@ function showResults(data){latestResult=data;latestCandidates=data.candidates||[
   else if(data.finished){outcome.dataset.kind='finished';outcome.append(el('strong','','Totalização encerrada'),el('p','','A totalização consta como encerrada, sem indicação de eleito no arquivo consultado.'));}
   else{outcome.dataset.kind='partial';outcome.append(el('strong','',`${data.candidates[0]?.name||'Candidato'} está à frente nesta consulta`),el('p','',`${fmtPct(data.candidates[0]?.percentage||0)} dos votos válidos informados até agora. Parcial: os números podem mudar.`));}
 
-  if(!legislative)outcome.hidden=true;
+  if(!legislative||municipality)outcome.hidden=true;
   if(municipality&&office==='presidente'&&['ok','stale'].includes(data.state)&&data.candidates?.[0]?.votes>0){cityVoteCache.set(`${round}-${uf}-${municipality}`,{leader:data.candidates[0],progress:data.progress,sectionsRemaining:data.sectionsRemaining,finished:data.finished});if(cityGeoUF===uf&&!$('#cityMapPanel').hidden)drawCityMap();}
   $('#progressPercent').textContent=fmtPct(data.progress);$('#progressBar').style.width=Math.min(100,Math.max(0,data.progress))+'%';
   $('#validVotes').textContent=fmtVotes(data.validVotes);$('#lastUpdated').textContent=data.generatedAt||'Não informada';
@@ -506,7 +544,10 @@ async function queryCities(immediate=false, preferredUF="", autoOpenExact=false)
   };if(immediate)await run();else searchTimer=setTimeout(run,220);
 }
 function selectCity(item,{fromExplorer=false}={}){const code=String(item.code||'').padStart(5,'0');if(!/^[0-9]{5}$/.test(code)||!STATE_NAMES[item.uf])return;
-  uf=item.uf;municipality=code;cityName=item.name;$('#cityQuery').value=`${item.name} — ${item.uf.toUpperCase()}`;
+  uf=item.uf;municipality=code;cityName=item.name;
+  if(office==='deputado-estadual'&&uf==='df')office='deputado-distrital';
+  if(office==='deputado-distrital'&&uf!=='df')office='deputado-estadual';
+  $('#cityQuery').value=`${item.name} — ${item.uf.toUpperCase()}`;
   renderCitySuggestions([]);showCityFeedback(`Local selecionado: ${item.name}, ${STATE_NAMES[uf]}. Resultado exibido abaixo.`);
   try{localStorage.setItem('urnaflash-last-city',JSON.stringify({code,uf,name:item.name}));}catch{}
   updateLastCity();updateHeadings();resetCandidateList();updateExplorerSelection();renderScopeSummary();
@@ -701,7 +742,11 @@ function init(){setTheme(readStore('urnaflash-theme','light'));$('#themeToggle')
   $('#refreshBtn').addEventListener('click',refreshResults);$('#mapRefresh').addEventListener('click',refreshMap);
   $('#stateSearch').addEventListener('input',renderStateList);
   $('#officeStateSearch').addEventListener('input',renderOfficeStates);
-  $('#candidateSearch').addEventListener('input',()=>{candidateFilter=$('#candidateSearch').value;shownCandidateCount=8;paintCandidates();});
+  $('#candidateSearch').addEventListener('input',()=>{candidateFilter=$('#candidateSearch').value;shownCandidateCount=municipality?12:8;if(municipality)$('#localVoteSearch').value=candidateFilter;paintCandidates();});
+  $('#localVoteSearch').addEventListener('input',syncCityCandidateQuery);
+  $('#localVoteSearch').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();openCityCandidateResults();}});
+  $('#localVoteOpen').addEventListener('click',openCityCandidateResults);
+  $('#firstRoundOfficesBtn').addEventListener('click',()=>{changeRound(1);$('#officeQuickTitle').scrollIntoView({behavior:'smooth',block:'center'});});
   $('#electedFilterBtn').addEventListener('click',()=>{onlyElected=!onlyElected;shownCandidateCount=8;$('#electedFilterBtn').setAttribute('aria-pressed',String(onlyElected));$('#electedFilterBtn').textContent=onlyElected?'✓ Mostrando somente eleitos · Ver todos':'Ver somente eleitos ('+latestCandidates.filter(c=>c.elected).length+')';paintCandidates();});
   $('#moreCandidates').addEventListener('click',()=>{shownCandidateCount+=12;paintCandidates();});
   $('#cityMapToggle').addEventListener('click',()=>{explorerOpenedFrom=document.activeElement;openCityMap();$('#mapa').scrollIntoView({behavior:'smooth',block:'start'});});
