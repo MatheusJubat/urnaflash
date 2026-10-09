@@ -11,7 +11,8 @@ test('visão resumida de eleitos, sem concatenar dezenas de nomes',()=>{
 });
 test('o mapa aparece antes da lista longa de candidatos, com navegação no celular',()=>{
   assert.ok(html.indexOf('id="electionOutcome"')<html.indexOf('id="mapa"'));
-  assert.ok(html.indexOf('id="mapa"')<html.indexOf('id="candidateList"'));
+  assert.ok(html.includes('id="candidateDisclosure"'));
+  assert.ok(html.indexOf('id="candidateDisclosure"')<html.indexOf('id="mapa"')); // lista permanece recolhida por padrão
   for(const id of ['officeStatePicker','electedFilterBtn','candidateCount','mapa','candidatos'])assert.ok(html.includes(`id="${id}"`));
   assert.match(html,/mobile-quicknav/);
 });

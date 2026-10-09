@@ -310,3 +310,202 @@ button:focus-visible,input:focus-visible,a:focus-visible,[tabindex="0"]:focus-vi
  .selected-area>div:nth-child(2){flex:none;min-height:0}
  .selected-actions{flex:none;min-height:0}
 }
+
+/* UrnaFlash 9 · leitura imediata, acompanhamento e estatísticas verificáveis */
+.topbar{display:none}
+.header .navline{min-height:66px}
+.hero{padding:22px 0 16px;display:block}
+.hero-content{max-width:100%}
+.hero h1{font-size:clamp(28px,3.3vw,39px);margin:7px 0 5px;letter-spacing:-.045em}
+.hero p{font-size:14px;margin:0 0 15px;line-height:1.5}
+.hero .today-card,.today-card,.capital-shortcuts,.hero-actions,.search-helper,.last-city{display:none!important}
+.hero .city-hero-search{margin:0;padding:11px 14px;border-radius:14px;max-width:100%;box-shadow:none}
+.hero .city-hero-search .search-title{font-size:14px;margin:0 0 6px}
+.hero .search-shell{max-width:680px;min-height:48px}
+.hero .search-shell input{min-height:45px}
+.hero .city-suggestions{z-index:30}
+.hero .search-feedback{font-size:12px;margin:3px 0 0}
+.results-section{padding-bottom:18px}
+.section-head{margin-bottom:11px}
+.section-head h2{font-size:clamp(25px,3vw,34px);margin:2px 0}
+.section-head p{font-size:13px}
+.results-panel{padding:19px}
+.quick-overview{min-height:48px}
+.friendly-filters{display:grid;grid-template-columns:minmax(0,.7fr) minmax(0,1.4fr);gap:10px;margin:10px 0}
+.friendly-filters .filter-group{margin:0}
+.friendly-filters .filter-topline{margin-bottom:7px}
+.friendly-filters .filter-topline strong{font-size:13px}
+.friendly-filters .filter-topline span{display:none}
+.friendly-filters .choice{min-height:44px;padding:9px 12px;font-size:13px}
+.friendly-filters #turnButtons .choice small{display:none}
+.friendly-filters .round-unlock-hint{font-size:12px;line-height:1.45;max-width:360px;margin:5px 0 0}
+.selected-area{margin-top:4px;margin-bottom:4px;padding:10px 13px;gap:10px}
+.selected-area>div:nth-child(2) strong{font-size:18px}
+.selected-area small{font-size:12px}
+.selected-actions{flex:0 1 auto;gap:6px}
+.selected-actions button{font-size:12px;min-height:40px;padding:6px 10px}
+#statusBanner{margin:10px 0;padding:10px 13px}
+#statusBanner strong{font-size:13px}
+#statusBanner p{font-size:12px;margin:1px 0 0}
+.results-heading{margin:14px 0 11px}
+.results-heading h3{font-size:clamp(17px,2vw,23px)}
+.live-focus{border:1px solid var(--line);border-radius:17px;background:var(--paper);padding:18px;margin-top:12px}
+.focus-top{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}
+.focus-phase{display:inline-block;font-size:11px;font-weight:850;color:var(--blue);letter-spacing:.08em}
+.live-focus[data-phase="counting"] .focus-phase{color:var(--muted)}
+.live-focus[data-phase="elected"] .focus-phase{color:var(--green)}
+.focus-top h3{font-size:clamp(21px,2.5vw,29px);line-height:1.15;margin:5px 0 6px;letter-spacing:-.045em}
+.focus-top p{font-size:13px;line-height:1.45;color:var(--muted);margin:0;max-width:680px}
+.focus-updated{color:var(--muted);font-size:11px;max-width:230px;text-align:right;flex:none}
+.focus-candidates{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:15px 0 0}
+.focus-candidates:empty{display:none}
+.focus-person{border:1px solid var(--line);border-radius:13px;padding:12px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:11px;background:var(--bg);align-items:center}
+.focus-person-identity{display:flex;align-items:center;gap:11px;min-width:0}
+.focus-person-identity img,.focus-person-photo{width:46px;height:54px;object-fit:cover;object-position:top center;border-radius:10px;background:var(--blue-soft);border:1px solid var(--line);flex:none}
+.focus-person-photo{display:grid;place-items:center;font-size:13px;font-weight:800;color:var(--blue)}
+.focus-person-label{display:grid;gap:3px;min-width:0}
+.focus-person-label strong{font-size:15px;line-height:1.25;overflow-wrap:anywhere}
+.focus-person-label small{font-size:12px;color:var(--muted)}
+.focus-person-numbers{text-align:right;display:grid;gap:2px;white-space:nowrap}
+.focus-person-numbers strong{font-size:clamp(20px,2.4vw,29px);letter-spacing:-.04em;font-variant-numeric:tabular-nums}
+.focus-person-numbers small{font-size:11px;color:var(--muted)}
+.focus-person-track{grid-column:1/-1;height:7px;background:var(--line);border-radius:100px;overflow:hidden}
+.focus-person-track span{display:block;height:100%;background:var(--blue);border-radius:100px}
+.focus-person:nth-child(2) .focus-person-track span{background:var(--muted)}
+.focus-person-label-elected{grid-column:1/-1;font-size:12px;color:var(--green);font-weight:800}
+.focus-progress{margin-top:15px;padding:12px 13px;background:var(--soft);border-radius:12px}
+.focus-progress-top{display:flex;justify-content:space-between;gap:15px;font-size:13px;margin-bottom:8px}
+.focus-progress-top strong:last-child{font-size:18px;font-variant-numeric:tabular-nums}
+.focus-progress .progress-track{height:8px}
+.focus-progress p{font-size:12px;color:var(--muted);margin:6px 0 0}
+.focus-votes-mini{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-top:10px}
+.focus-mini-vote{border:1px solid var(--line);border-radius:10px;padding:8px 11px;display:grid;gap:3px}
+.focus-mini-vote small{font-size:11px;color:var(--muted)}
+.focus-mini-vote strong{font-size:14px;font-variant-numeric:tabular-nums}
+.map-callout{padding:10px 13px;margin-top:12px;min-height:51px}
+.map-callout strong{font-size:14px}
+.map-callout small{font-size:11px}
+#electionOutcome{margin:10px 0;padding:10px 13px}
+#electionOutcome strong{font-size:15px}
+#electionOutcome p{font-size:12px}
+.candidate-only-section{padding-bottom:22px}
+.candidate-disclosure{overflow:hidden}
+.candidate-disclosure>summary{padding:17px 21px;display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;list-style:none}
+.candidate-disclosure>summary::-webkit-details-marker{display:none}
+.candidate-disclosure>summary strong{display:block;font-size:15px}
+.candidate-disclosure>summary small{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+.details-chevron{font-size:24px;color:var(--blue);transition:transform .15s}
+.candidate-disclosure[open] .details-chevron{transform:rotate(180deg)}
+.candidate-disclosure>.candidate-only-panel{border-top:1px solid var(--line);border-radius:0}
+.map-section{padding-bottom:30px}
+.map-section .section-head h2{margin-top:3px}
+.map-details{margin-bottom:12px}
+.map-details>summary{font-size:13px;color:var(--blue);font-weight:750;cursor:pointer;padding:11px 13px;border:1px solid var(--line);border-radius:11px;background:var(--paper);list-style:none}
+.map-details>summary::before{content:'▤';margin-right:9px}
+.map-details>.national-summary{margin:9px 0 0}
+.map-section .geo-map,.map-section .geo-map svg{min-height:300px;height:350px}
+.map-section .state-sidebar{max-height:465px}
+.map-section .states-list{max-height:310px;min-height:230px}
+.insights-section{padding-bottom:34px}
+.insights-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
+.insights-card{padding:19px;display:grid;gap:7px}
+.insights-card h3{margin:0 0 7px;font-size:21px;letter-spacing:-.04em}
+.insight-line{display:grid;gap:3px;padding:11px 0;border-top:1px solid var(--line)}
+.insight-line span{font-size:12px;color:var(--muted)}
+.insight-line strong{font-size:17px}
+.insights-disclaimer{color:var(--muted);font-size:12px;line-height:1.5;margin:12px 0}
+.city-insight{margin-top:14px;display:flex;gap:16px;align-items:center;justify-content:space-between;padding:19px}
+.city-insight p{margin:5px 0 0;font-size:13px;color:var(--muted);line-height:1.5}
+.city-insight .button{white-space:nowrap}
+@media(max-width:800px){
+  .hero{padding:13px 0 12px}
+  .hero h1{font-size:28px}
+  .hero p{font-size:13px;margin-bottom:9px}
+  .friendly-filters{grid-template-columns:1fr}
+  .focus-candidates,.insights-grid{grid-template-columns:1fr}
+  .focus-person{grid-template-columns:minmax(0,1fr) auto}
+  .focus-top{flex-wrap:wrap}
+  .focus-updated{max-width:none;text-align:left}
+  .city-insight{flex-direction:column;align-items:stretch}
+}
+@media(max-width:700px){
+  .shell{width:min(100% - 24px,1200px)}
+  .hero .city-hero-search{padding:10px}
+  .hero .city-hero-search .search-title{font-size:13px}
+  .hero .search-feedback{min-height:0}
+  .results-panel{padding:12px}
+  .results-heading{display:flex;align-items:center;gap:12px}
+  .results-section .section-head p{display:none}
+  .results-section .section-head h2{font-size:25px}
+  .selected-actions{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .live-focus{padding:12px}
+  .focus-person{padding:10px}
+  .focus-person-identity img,.focus-person-photo{width:44px;height:51px}
+  .focus-person-label strong{font-size:15px}
+  .focus-person-numbers strong{font-size:24px}
+  .map-section .geo-map,.map-section .geo-map svg{min-height:270px;height:300px}
+  .map-section .state-sidebar{max-height:340px}
+  .focus-progress-top{font-size:12px}
+  .focus-progress-top strong:last-child{font-size:17px}
+  .candidate-disclosure>summary{padding:15px}
+  .mobile-quicknav{grid-template-columns:repeat(4,minmax(0,1fr))}
+}
+@media(prefers-reduced-motion:reduce){.details-chevron{transition:none}}
+
+/* Layout v9 final: resultados primeiro na tela de celular, busca e filtros aprofundados abaixo. */
+.hero{padding:17px 0 8px}
+.hero .hero-content{display:block}
+.hero h1{font-size:clamp(27px,3.3vw,37px);margin:6px 0 4px}
+.hero p{margin:0;font-size:13px}
+.results-section .section-head{margin:5px 0 10px}
+.results-section .section-head h2{font-size:clamp(23px,2.8vw,30px)}
+.results-panel>.quick-overview{margin-bottom:10px}
+.quick-round-strip{margin:0 0 9px}
+.quick-round-strip .filter-group{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.quick-round-strip .filter-topline{margin:0}
+.quick-round-strip .filter-topline strong{font-size:13px}
+.quick-round-strip .filter-topline span{display:none}
+.quick-round-strip .choice-row{gap:8px}
+.quick-round-strip .choice{min-height:42px;padding:7px 11px;min-width:96px;font-size:13px}
+.quick-round-strip .choice small{display:none}
+.quick-round-strip #roundUnlockHint{flex:1 1 100%;font-size:12px;margin:0}
+#liveFocus{margin:0 0 9px}
+.filter-disclosure{border:1px solid var(--line);border-radius:11px;background:var(--paper);margin:11px 0}
+.filter-disclosure>summary{min-height:48px;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 14px;font-size:13px;color:var(--blue);font-weight:790;cursor:pointer;list-style:none}
+.filter-disclosure>summary::-webkit-details-marker{display:none}
+.filter-disclosure .friendly-filters{display:block;margin:0 12px;padding-top:10px;border-top:1px solid var(--line)}
+.filter-disclosure .friendly-filters .filter-group{margin:0 0 10px}
+.filter-disclosure .selected-area{margin:8px 12px 12px;padding:11px}
+.results-heading{margin:9px 0}
+.results-heading .eyebrow{display:none}
+.results-heading h3{font-size:16px}
+#resultsSubtitle{display:none}
+.quick-city-section{padding:0 0 24px}
+.city-search-box{display:grid;grid-template-columns:.65fr 1fr;align-items:center;gap:16px;padding:16px 19px}
+.city-search-intro h2{font-size:21px;letter-spacing:-.035em;margin:3px 0}
+.city-search-intro p{font-size:13px;color:var(--muted);margin:0}
+.city-search-box .city-hero-search{margin:0;padding:0;border:0;box-shadow:none}
+.city-search-box .city-hero-search .search-title{font-size:12px}
+.city-search-box .search-shell{min-height:45px}
+.city-search-box .search-feedback{font-size:11px;margin:2px 0 0}
+.city-search-box .capital-shortcuts,.city-search-box .last-city{display:none!important}
+@media(max-width:700px){
+ .hero{padding:12px 0 6px}
+ .hero .kicker{font-size:10px}
+ .hero h1{font-size:26px;line-height:1.1}
+ .hero p{font-size:12px}
+ .results-section .section-head{margin-top:3px}
+ .results-section .section-head h2{font-size:22px}
+ .results-section .section-head .eyebrow{font-size:9px}
+ .results-panel>.quick-overview{min-height:50px;padding:9px 11px}
+ .quick-overview-link{font-size:12px}
+ .quick-round-strip .choice{min-width:100px}
+ .live-focus{margin:0}
+ .focus-top h3{font-size:21px}
+ .focus-top p{font-size:12px}
+ .focus-progress{padding:10px}
+ .city-search-box{grid-template-columns:1fr;gap:8px;padding:14px}
+ .city-search-intro h2{font-size:19px}
+ .city-search-box .city-hero-search{padding:0;margin:0}
+ .city-search-box #cityFindBtn{width:100%}
+}

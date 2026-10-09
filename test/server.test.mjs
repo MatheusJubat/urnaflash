@@ -6,11 +6,11 @@ test.before(async()=>{await new Promise(r=>server.listen(0,'127.0.0.1',r));origi
 test.after(async()=>{await new Promise(r=>server.close(r));});
 async function req(uri){return fetch(origin+uri);}
 test('pagina inicial e paginas SEO regionais respondem',async()=>{
- const a=await req('/');assert.equal(a.status,200);assert.match(await a.text(),/A eleição,/);
+ const a=await req('/');assert.equal(a.status,200);assert.match(await a.text(),/Eleições 2026\. /);
  const b=await req('/eleicoes-2026/parana');assert.equal(b.status,200);assert.match(await b.text(),/Eleições 2026 em Paraná/);
 });
 test('rotas de saúde e sitemap funcionam',async()=>{
- assert.equal((await (await req('/api/health')).json()).version,'8.1.0');
+ assert.equal((await (await req('/api/health')).json()).version,'9.0.0');
  const r=await req('/sitemap.xml');assert.equal(r.status,200);assert.match(await r.text(),/eleicoes-2026\/acre/);
 });
 test('API rejeita parametros indevidos',async()=>{
@@ -60,7 +60,7 @@ test('botao do segundo turno fica clicavel para testes e mostra aviso de previa'
   const button=html.match(/<button[^>]+data-round="2"[^>]*>/)?.[0];
   assert.ok(button,'botão do segundo turno existe');
   assert.doesNotMatch(button,/\sdisabled(?:\s|=|>)/,'botão não pode estar desabilitado');
-  assert.match(html,/Prévia disponível para testar|Você já pode explorar a prévia/);
+  assert.match(html,/Prévia do segundo turno sem votos oficiais|Prévia disponível para testar/);
   const js=await (await req('/app.js')).text();
   assert.match(js,/manualTurn=\['1','2'\]\.includes\(params\.get\('turno'\)\)/,'link ?turno=2 acessível antes da data');
 });

@@ -198,7 +198,9 @@ export function stateMapRecord(uf,d){
     sectionsRemaining:valid?d.sectionsRemaining:null,generatedAt:d.generatedAt||null,
     leader:first?{name:first.name,party:first.party,number:first.number,percentage:first.percentage,votes:first.votes}:null,
     second:second?{name:second.name,number:second.number,percentage:second.percentage,votes:second.votes}:null,
-    leadVotes:first&&second?Math.max(0,first.votes-second.votes):null};
+    leadVotes:first&&second?Math.max(0,first.votes-second.votes):null,
+    // Completo para apuração presidencial: permite comparar votos por estado mesmo quando a candidatura não liderou a UF.
+    candidates:valid?d.candidates.map(c=>({name:c.name,number:c.number,party:c.party,votes:c.votes,percentage:c.percentage})):[]};
 }
 export async function loadStateMap(round){
   if(![1,2].includes(round))return {state:'invalid',message:'Turno inválido'};

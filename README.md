@@ -1,50 +1,29 @@
-# UrnaFlash 8.1 — interface simplificada para a apuração de 2026
+# UrnaFlash 9.0 — painel com etapas da apuração
 
-Projeto independente, responsivo, com Node.js e dados oficiais do TSE quando disponíveis. Versão de **correções de UX** da v8, preparada para o mesmo Web Service do Render.
+Site independente de apuração eleitoral com dados públicos do TSE. 
 
 ## O que mudou
 
-- **Fim da lista gigante de nomes no quadro de resultado:** disputas proporcionais mostram uma mensagem curta com quantidade de candidaturas marcadas como eleitas; os nomes permanecem pesquisáveis na lista.
-- **Mapa acima da lista longa:** a página apresenta primeiro o resumo, depois o mapa interativo e, em seguida, os cartões com votos de candidatos.
-- **Lista de candidatos progressiva:** mostra 8 inicialmente, acrescenta 12 por toque e oferece filtro "Ver somente eleitos" nos cargos proporcionais, quando essa informação está disponível.
-- **Trocar estado no lugar certo:** o botão `Trocar estado`/`Escolher estado` abre a busca por estados logo dentro do painel atual, com bandeiras e campos acessíveis. Não envia o usuário ao campo de busca de cidades no topo.
-- **Deputado distrital acessível:** ao tocar nesse cargo, seleciona o Distrito Federal e o 1º turno (único turno para esse cargo), com aviso explicativo caso a pessoa estivesse no 2º turno. Deputado estadual não é mostrado quando o recorte é o DF.
-- **Navegação móvel:** menu inferior com Apuração, Mapa, Candidatos e Minha cidade; botões e textos ajustados para telas pequenas.
-- **Sem dados fictícios de eleição no projeto público.** As prévias de interface são verificadas somente com dados simulados em teste.
+- Página inicial compacta: resultados, 2 candidaturas mais votadas, avanço da totalização e votos brancos/nulos logo à vista.
+- Fases detectadas pelos dados publicados: aguardando / parcial / totalização encerrada / eleito quando indicado oficialmente.
+- Lista longa de candidaturas agora é um painel **Ver lista completa de candidatos e votos**, fechado inicialmente.
+- Mapa interativo preservado, com resumo técnico recolhido para evitar repetição visual.
+- Estatísticas estaduais: destaque para maior percentual de votos válidos e maior número absoluto de votos por candidatura, em estados com dados disponíveis. Não são rankings de todos os municípios.
+- Ao voltar ao site no mesmo navegador, pode mostrar quanto aumentou o número de seções totalizadas desde a visita anterior; armazenamento local do visitante, sem substituir os dados oficiais.
+- Todos os recursos anteriores foram mantidos: cargo, turno, mapas estadual/municipal, busca, bandeiras, fotos com associação oficial, zoom e e-mail comercial.
 
-## Publicar no GitHub / Render
+## Publicação
 
-1. Extraia o ZIP e envie **os arquivos de dentro de `UrnaFlash-v8-1`** para a raiz do repositório `urnaflash` existente. Substitua os arquivos de mesmo nome.
-2. Commit na branch `main`: `fix: simplifica lista de eleitos e melhora mapa e filtros`.
-3. No Render, mantenha o mesmo **Web Service**, `Node`, `Build Command: npm install --ignore-scripts`, `Start Command: npm start` e o plano já contratado. Com Auto Deploy, a atualização acontece após o commit.
-4. Depois do status `Live`, use `Ctrl+Shift+R` no computador ou recarregue a página no celular.
+Extraia e envie os arquivos **de dentro de `UrnaFlash-v9`** para a raiz do mesmo repositório `urnaflash` do GitHub. Substitua os existentes. Render: Web Service existente; build `npm install --ignore-scripts`, start `npm start`. Confirme `/api/health` após o deploy.
 
-## Testar localmente
+Sugestão de commit: `feat: melhora acompanhamento eleitoral com painel dinamico e estatisticas estaduais`
 
-Requer Node 20 ou superior.
+## Verificações
 
-```bash
-npm install --ignore-scripts
-npm test
-npm start
-```
+`npm test` e `npm start`; consulte o resultado do primeiro turno nacional, de um estado e de deputados. Valide as estatísticas em cada UF e teste a publicação do segundo turno. Não apresente vencedor sem confirmação oficial, nem use dados simulados no site público.
 
-Depois acesse `http://localhost:3000`. A rota `/api/health` identifica a versão 8.1.0.
+Os arquivos de mapa por UF são obtidos do IBGE, e os resultados do TSE. Resultados oficiais antes de 25/10 são referentes ao primeiro turno. A partir de 25/10 o segundo turno fica selecionado, aguardando publicação dos dados. 
 
-### Checklist de produção
+**Limite técnico dos municípios**: o portal consulta cidades sob demanda. Por isso não exibe ranking nacional das 5.570 cidades. Para construir estatísticas municipais completas, será necessário importar o dataset oficial consolidado em um processo separado, com cobertura verificável.
 
-- Presidente no 1º turno → votos, candidatos e estado da totalização.
-- Deputado estadual em SP → resumo curto, busca de candidaturas, opção "Somente eleitos" e expansão progressiva.
-- `Trocar estado` dentro do painel → escolha de outra UF sem navegar ao topo.
-- Deputado distrital em qualquer UF → vai ao DF, no 1º turno.
-- Mapa do Brasil → toque em UF, toque novamente para voltar ao Brasil; consulta do mapa municipal sob demanda.
-- No celular → menu inferior sempre acessível, sem rolagem lateral.
-- Segundo turno antes de 25/10 → prévia, sem números inventados. A partir de 25/10 inicia selecionado por padrão; arquivos oficiais são consultados conforme janela de divulgação.
-
-O servidor de testes não substitui a verificação das respostas reais do TSE no Render; fonte, autenticação dos números e fotos devem ser conferidas antes de divulgação ampla.
-
-## Transparência
-
-As candidaturas e respectivas marcações eleitorais são normalizadas a partir dos arquivos da Justiça Eleitoral. Para cargos proporcionais, **a votação individual não basta para concluir a eleição**; o status de eleito exige indicação no arquivo oficial. Em caso de indisponibilidade do TSE, o site mostra um aviso e não inventa resultados.
-
-Contato comercial no site: `contatournaflash@gmail.com`.
+Contato comercial: contatournaflash@gmail.com.
