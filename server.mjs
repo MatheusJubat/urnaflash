@@ -65,7 +65,7 @@ async function getGeometry(kind,uf=''){
 export const server=http.createServer(async(req,res)=>{
   security(res);const head=req.method==='HEAD';if(req.method!=='GET'&&!head)return json(res,405,{error:'Metodo nao permitido'});
   let url;try{url=new URL(req.url,`http://${req.headers.host||'localhost'}`);}catch{return json(res,400,{error:'URL invalida'},head);}
-  if(url.pathname==='/api/health')return json(res,200,{ok:true,service:'urnaflash',version:'9.1.0'},head);
+  if(url.pathname==='/api/health')return json(res,200,{ok:true,service:'urnaflash',version:'9.3.0'},head);
   if(url.pathname==='/api/status'){
     try{const c=await getElectionConfig();return json(res,200,{source:'TSE',rounds:{'1':!!electionFromConfig(c,1),'2':!!electionFromConfig(c,2)},checkedAt:new Date().toISOString()},head);}catch{return json(res,503,{error:'Fonte TSE indisponivel'},head);}
   }
@@ -84,9 +84,9 @@ export const server=http.createServer(async(req,res)=>{
     const round=Number(url.searchParams.get('round')||1),office=url.searchParams.get('office')||'presidente';
     const uf=(url.searchParams.get('uf')||'br').toLowerCase(),municipality=url.searchParams.get('municipality')||'';
     if(![1,2].includes(round)||!getStates().includes(uf)||!OFFICES[office]|| (municipality&&!/^\d{5}$/.test(municipality)))return json(res,400,{state:'invalid',message:'Parametros invalidos'},head);
-    // A prévia antes da votação não consulta arquivos eleitorais futuros nem exibe números de teste.
-    if(round===2&&!secondRoundUnlocked())return json(res,200,{state:'awaiting',round,preview:true,
-      message:'Prévia do segundo turno. A apuração oficial será divulgada em 25/10/2026. Enquanto isso, explore estados, cidades e cargos sem votos simulados.'},head);
+    // Segundo turno bloqueado antes de 25/10, inclusive em URLs diretas.
+    if(round===2&&!secondRoundUnlocked())return json(res,200,{state:'awaiting',round,locked:true,unlockDate:SECOND_ROUND_DATE,
+      message:'O segundo turno será liberado em 25/10/2026, pelo horário de Brasília.'},head);
     if(round===2&&!secondRoundPublicationOpen())return json(res,200,{state:'awaiting',round,
       message:'Segundo turno de 25/10: aguardando a divulgação oficial do TSE, prevista a partir das 17h (horário de Brasília).'},head);
     const data=await loadResult({round,uf,office,municipality});
@@ -94,8 +94,8 @@ export const server=http.createServer(async(req,res)=>{
   }
   if(url.pathname==='/api/map'){
     const round=Number(url.searchParams.get('round')||1);if(![1,2].includes(round))return json(res,400,{state:'invalid'},head);
-    if(round===2&&!secondRoundUnlocked())return json(res,200,{state:'awaiting',round,preview:true,states:[],
-      message:'Prévia do segundo turno: aguardando os resultados oficiais do dia 25/10.'},head);
+    if(round===2&&!secondRoundUnlocked())return json(res,200,{state:'awaiting',round,locked:true,unlockDate:SECOND_ROUND_DATE,states:[],
+      message:'O segundo turno será liberado em 25/10/2026, pelo horário de Brasília.'},head);
     if(round===2&&!secondRoundPublicationOpen())return json(res,200,{state:'awaiting',round,states:[],
       message:'A divulgação oficial do segundo turno está prevista a partir das 17h de Brasília.'},head);
     return json(res,200,await loadStateMap(round),head);

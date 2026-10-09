@@ -44,14 +44,21 @@ function resetCandidateList(){focusWaiting();$('#electionOutcome').hidden=true;s
 function dateInBrasilia(){const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());const pick=t=>parts.find(p=>p.type===t)?.value;return `${pick('year')}-${pick('month')}-${pick('day')}`;}
 function updateUnlockStatus(dayStarted){
   electionDayStarted=dayStarted;
-  const btn=$('#turnButtons [data-round="2"]');btn.disabled=false;
-  btn.querySelector('small').textContent=dayStarted?'25 de outubro':'25 de outubro · Prévia';
-  $('#roundUnlockHint').hidden=round!==2;
-  $('#roundUnlockHint').textContent=dayStarted?'Segundo turno disponível. Os votos só aparecem após publicação oficial do TSE.':'Prévia disponível para testar o 2º turno. A votação ocorre em 25/10 e não há apuração oficial para mostrar antes disso. Na data, a página abrirá neste turno automaticamente.';
+  const btn=$('#turnButtons [data-round="2"]');
+  btn.disabled=!dayStarted;
+  btn.setAttribute('aria-disabled',String(!dayStarted));
+  btn.querySelector('small').textContent=dayStarted?'25 de outubro':'Disponível em 25/10';
+  const hint=$('#roundUnlockHint');
+  hint.hidden=dayStarted&&round!==2;
+  hint.textContent=dayStarted
+    ?'O segundo turno está liberado. A apuração oficial será exibida assim que o TSE divulgar os resultados, a partir das 17h de Brasília.'
+    :'O 2º turno será liberado automaticamente em 25/10, pelo horário de Brasília. Até lá, consulte os resultados do 1º turno.';
   renderAutoStatus();
 }
 function renderAutoStatus(){
-  $('#autoStatus').textContent=electionDayStarted?'2º turno disponível · atualização oficial a partir das 17h':round===2?'Prévia do 2º turno · sem votos oficiais':'1º turno disponível · prévia do 2º turno liberada';
+  $('#autoStatus').textContent=electionDayStarted
+    ?'2º turno disponível · divulgação oficial a partir das 17h'
+    :'Resultados do 1º turno · 2º turno disponível em 25/10';
 }
 function populateOffices(){
   if(round===2&&!['presidente','governador'].includes(office))office='presidente';
@@ -78,14 +85,14 @@ function updateHeadings(){populateOffices();
   const title=cityName&&municipality?`${cityName} (${uf.toUpperCase()})`:STATE_NAMES[uf]||'Brasil';
   const overviewLabel=$('#quickOverviewLabel'),overviewTip=$('#quickOverviewTip');if(overviewLabel)overviewLabel.textContent=`${title} · ${OFFICES[office]}`;if(overviewTip)overviewTip.textContent=municipality?'Votos da cidade selecionada':uf==='br'?'Resultado do Brasil inteiro':'Votos do estado selecionado';
   $('#officeCaption').textContent=OFFICES[office].toUpperCase();$('#electionHeading').textContent=uf==='br'&&office!=='presidente'?`${OFFICES[office]} · escolha seu estado`:`${round}º turno · ${title}`;
-  $('#resultsSubtitle').textContent=round===2&&!electionDayStarted?'Prévia de navegação · sem apuração oficial até 25 de outubro':municipality?'Votos recebidos neste município conforme o TSE':office==='senador'?'Duas vagas de senador em disputa por estado':'Resultados oficiais da eleição selecionada';
+  $('#resultsSubtitle').textContent=round===2?'A apuração oficial será exibida quando publicada pelo TSE':municipality?'Votos recebidos neste município conforme o TSE':office==='senador'?'Duas vagas de senador em disputa por estado':'Resultados oficiais da eleição selecionada';
   $('#selectedPlace').textContent=municipality?title:uf==='br'&&office!=='presidente'?'Selecione um estado':uf==='br'?'Brasil inteiro':STATE_NAMES[uf];
   const regionMark=$('#activeRegionFlag');if(regionMark)regionMark.replaceChildren(stateFlag(uf));
   $('#selectedPlaceHint').textContent=municipality?'Resultado municipal · dados do TSE':uf==='br'?'Busque sua cidade acima ou escolha um estado no mapa.':'Resultado estadual · clique no mapa para trocar.';
   $('#changePlaceBtn').textContent=uf==='br'?'Escolher estado':'Trocar estado';
   $('#changeCityBtn').textContent=uf==='br'?'Buscar cidade':'Trocar cidade';
-  $('#heroRound').textContent=round+'º turno';$('#heroTitle').textContent=round===1?'Resultados do 1º turno':electionDayStarted?'Apuração do 2º turno':'Prévia do 2º turno';
-  $('#heroSubtitle').textContent=round===1?'4 de outubro · Dados oficiais do TSE':electionDayStarted?'25 de outubro · Acompanhamento oficial':'Disponível para testar · votação em 25/10';
+  $('#heroRound').textContent=round+'º turno';$('#heroTitle').textContent=round===1?'Resultados do 1º turno':'Apuração do 2º turno';
+  $('#heroSubtitle').textContent=round===1?'4 de outubro · Dados oficiais do TSE':'25 de outubro · Resultados divulgados pelo TSE';
   updateLocalVoteFinder();
   $('#cityCardTitle').textContent=municipality?`Você está vendo ${cityName||'sua cidade'}`:'Sua cidade, sem complicação';
   $('#cityCardDescription').textContent=municipality?`Mostramos os votos de ${OFFICES[office].toLowerCase()} em ${cityName||'seu município'}, ${STATE_NAMES[uf]}. Para trocar de cidade, basta usar a busca no topo.`:'Digite o nome da sua cidade no campo no início da página. Não precisa procurar códigos nem navegar por uma lista enorme.';
@@ -95,10 +102,12 @@ function updateHeadings(){populateOffices();
   $('#clearSelectionBtn').hidden=true;
   $('#allBrazilBtn').textContent=uf==='br'?'✓ Brasil inteiro':'← Voltar ao Brasil';
   $('#allBrazilBtn').setAttribute('aria-label',uf==='br'?'Exibindo Brasil inteiro':'Limpar seleção e voltar aos resultados do Brasil');
-  $('#roundUnlockHint').hidden=round!==2;
+  $('#roundUnlockHint').hidden=electionDayStarted&&round!==2;
   renderAutoStatus();applyURL();
 }
-function changeRound(value,manual=true){if(![1,2].includes(value))return;round=value;if(manual)manualTurn=true;pickerForcedOpen=false;closeInlineCityPicker();
+function changeRound(value,manual=true){if(![1,2].includes(value))return;
+  if(value===2&&!electionDayStarted){if(manual)toast('O 2º turno será liberado em 25/10, pelo horário de Brasília.');return;}
+  round=value;if(manual)manualTurn=true;pickerForcedOpen=false;closeInlineCityPicker();
   // Nunca mostrar dados do turno anterior enquanto chegam novas respostas oficiais.
   statesData={};latestNational=null;renderScopeSummary();renderStateList();drawMap();renderInsights();
   updateHeadings();resetCandidateList();refreshResults();refreshMap();}
@@ -781,11 +790,18 @@ async function openCityMap(){
 }
 async function checkAutomaticRound(){
   try{const data=await fetchJson('/api/auto');
+    const wasUnlocked=electionDayStarted;
     updateUnlockStatus(!!data.unlocked);
+    // Virada 24→25: troca automaticamente para o 2º turno, mesmo se alguém
+    // deixou o 1º turno selecionado na aba antes da meia-noite.
+    if(!wasUnlocked&&data.unlocked)manualTurn=false;
     const candidate=data.recommendedRound===2?2:1;
+    if(!data.unlocked&&round===2){manualTurn=false;changeRound(1,false);}
     if(!manualTurn&&candidate!==round){changeRound(candidate,false);refreshGovernorSituation();}
     updateHeadings();
-  }catch{const enabled=dateInBrasilia()>='2026-10-25';updateUnlockStatus(enabled);
+  }catch{const enabled=dateInBrasilia()>='2026-10-25';const wasUnlocked=electionDayStarted;updateUnlockStatus(enabled);
+    if(!wasUnlocked&&enabled)manualTurn=false;
+    if(!enabled&&round===2){manualTurn=false;changeRound(1,false);}
     if(!manualTurn&&round!==(enabled?2:1)){changeRound(enabled?2:1,false);refreshGovernorSituation();}
     updateHeadings();
   }
@@ -805,7 +821,10 @@ function init(){setTheme(readStore('urnaflash-theme','light'));$('#themeToggle')
   const path=location.pathname.split('/').filter(Boolean),code=Object.entries(SLUGS).find(([,slug])=>slug===path[1])?.[0];
   const resetOnReload=navigationIsReload();uf=resetOnReload?'br':code||'br';const params=new URLSearchParams(location.search);
   const unlocked=dateInBrasilia()>='2026-10-25';updateUnlockStatus(unlocked);
-  manualTurn=['1','2'].includes(params.get('turno'));round=manualTurn?(params.get('turno')==='2'?2:1):(unlocked?2:1);
+  // Mesmo com ?turno=2 na URL, nunca liberar a seleção antes de 25/10.
+  const requestedTurn=params.get('turno');
+  manualTurn=!resetOnReload&&['1','2'].includes(requestedTurn)&&!(requestedTurn==='2'&&!unlocked);
+  round=manualTurn?(requestedTurn==='2'?2:1):(unlocked?2:1);
   office=resetOnReload?'presidente':OFFICES[params.get('cargo')]?params.get('cargo'):'presidente';municipality=!resetOnReload&&uf!=='br'&&/^\d{5}$/.test(params.get('municipio')||'')?params.get('municipio'):'';
   if(office!=='presidente')$('#filterDisclosure').open=true;
   if(municipality){cityName=uf==='pr'&&municipality==='75221'?'Carambeí':`Município ${municipality}`;}

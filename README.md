@@ -1,8 +1,17 @@
-# UrnaFlash 9.2 — troca rápida de cidades no mesmo estado
+# UrnaFlash 9.3 — segundo turno bloqueado até 25/10/2026
 
 Site independente com consulta de resultados do TSE, mapas do IBGE, primeiro/segundo turno e navegação acessível.
 
-## Novidade v9.2
+## Novidade v9.3 — pronto para a virada do segundo turno
+
+- Até **24/10/2026, 23h59min59s (horário de Brasília)**: botão **2º turno** fica desabilitado e com indicação clara de quando abrirá. O primeiro turno permanece disponível para consultas de presidente, governador, senador e deputados.
+- Em **25/10/2026 às 00h00, horário de Brasília**, o botão habilita e o segundo turno passa a ser a seleção inicial, **inclusive após F5**, quando a página não recebe escolha explícita válida de primeiro turno.
+- Durante o dia 25, **antes das 17h**, o segundo turno fica disponível para navegar, mas os números permanecem indisponíveis até o TSE começar a publicá-los. Não são inventados resultados.
+- A partir das 17h, o servidor pode consultar os arquivos oficiais conforme as atualizações públicas; resultados parciais continuam identificados como parciais. O resultado final só aparece como oficialmente eleito quando constar do arquivo do TSE.
+- O bloqueio vale também para URL `?turno=2` antes de 25/10 e para as APIs públicas `/api/results?round=2` e `/api/map?round=2`.
+- O cliente verifica automaticamente a liberação a cada ~30 segundos **enquanto a aba estiver ativa**, e revalida ao voltar à página. Não precisa novo deploy no dia 25.
+
+## Recursos mantidos da v9.2
 
 - **Trocar cidade**, no painel de resultados: mantém a UF atual, o turno e o cargo. Digite duas letras, escolha uma sugestão e os números municipais atualizam no mesmo lugar.
 - **Trocar estado**, separadamente: abre a seleção de UF sem confundir com a pesquisa municipal.
@@ -25,11 +34,11 @@ Site independente com consulta de resultados do TSE, mapas do IBGE, primeiro/seg
 1. Extraia o ZIP.
 2. Envie **o conteúdo interno** da pasta `UrnaFlash-v9-2` à raiz do repositório `urnaflash` no GitHub, substituindo os arquivos já existentes.
 3. Faça commit na branch `main`; o Render usará o mesmo Web Service, sem criar uma segunda hospedagem.
-4. Confira o deploy, o endpoint `/api/health` e teste as seguintes combinações: Brasil / Presidente; Carambeí (PR) / Deputado Federal / pesquisar nome; DF / Deputado Distrital; outro estado / Deputado Estadual; segundo turno e retorno aos cargos do primeiro.
+4. Confira o deploy, o endpoint `/api/health` e teste as seguintes combinações: Brasil / Presidente; Carambeí (PR) / Deputado Federal / pesquisar nome; DF / Deputado Distrital; outro estado / Deputado Estadual; 2º turno desabilitado antes do dia 25; virada automática em 25/10; retorno aos cargos do primeiro.
 
 Build: `npm install --ignore-scripts`. Start: `npm start`. Testes: `npm test`.
 
-Sugestão de commit: `feat: permite trocar cidades diretamente sem refazer escolha de estado`
+Sugestão de commit: `fix: bloqueia segundo turno ate 25 de outubro e ativa automaticamente`
 
 ## Cuidado com os resultados
 

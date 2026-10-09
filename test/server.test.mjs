@@ -10,7 +10,7 @@ test('pagina inicial e paginas SEO regionais respondem',async()=>{
  const b=await req('/eleicoes-2026/parana');assert.equal(b.status,200);assert.match(await b.text(),/Eleições 2026 em Paraná/);
 });
 test('rotas de saúde e sitemap funcionam',async()=>{
- assert.equal((await (await req('/api/health')).json()).version,'9.1.0');
+ assert.equal((await (await req('/api/health')).json()).version,'9.3.0');
  const r=await req('/sitemap.xml');assert.equal(r.status,200);assert.match(await r.text(),/eleicoes-2026\/acre/);
 });
 test('API rejeita parametros indevidos',async()=>{
@@ -55,23 +55,25 @@ test('busca nacional destaca capitais de cinco regioes sem substituir busca livr
  assert.ok(js.includes("$('#explorerSearch').placeholder='Ex.: '"));
 });
 
-test('botao do segundo turno fica clicavel para testes e mostra aviso de previa',async()=>{
+test('segundo turno bloqueado no HTML e protegido contra URLs diretas antes da data',async()=>{
   const html=await (await req('/')).text();
   const button=html.match(/<button[^>]+data-round="2"[^>]*>/)?.[0];
   assert.ok(button,'botão do segundo turno existe');
-  assert.doesNotMatch(button,/\sdisabled(?:\s|=|>)/,'botão não pode estar desabilitado');
-  assert.match(html,/Prévia do segundo turno sem votos oficiais|Prévia disponível para testar/);
+  assert.match(button,/\sdisabled(?:\s|=|>)/,'botão inicia bloqueado para evitar flash indevido');
+  assert.match(button,/aria-disabled="true"/);
+  assert.match(html,/será liberado automaticamente em 25\/10/);
   const js=await (await req('/app.js')).text();
-  assert.match(js,/manualTurn=\['1','2'\]\.includes\(params\.get\('turno'\)\)/,'link ?turno=2 acessível antes da data');
+  assert.match(js,/if\(value===2&&!electionDayStarted\)/);
+  assert.match(js,/requestedTurn==='2'&&!unlocked/);
 });
 
-test('API de prévia do segundo turno não fornece votos anteriores à eleição',async()=>{
+test('API do segundo turno bloqueado não fornece votos anteriores à eleição',async()=>{
   if(secondRoundUnlocked())return; // A partir de 25/10, a API consulta as fontes oficiais.
   const result=await (await req('/api/results?round=2&uf=br&office=presidente')).json();
-  assert.equal(result.preview,true);assert.equal(result.state,'awaiting');
+  assert.equal(result.locked,true);assert.equal(result.state,'awaiting');
   assert.ok(!result.candidates?.length);
   const stateMap=await (await req('/api/map?round=2')).json();
-  assert.equal(stateMap.preview,true);assert.deepEqual(stateMap.states,[]);
+  assert.equal(stateMap.locked,true);assert.deepEqual(stateMap.states,[]);
   const auto=await (await req('/api/auto')).json();
   assert.equal(auto.recommendedRound,1,'o primeiro turno segue padrão antes do dia 25');
 });
