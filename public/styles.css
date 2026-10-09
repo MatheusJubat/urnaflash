@@ -538,3 +538,30 @@ button:focus-visible,input:focus-visible,a:focus-visible,[tabindex="0"]:focus-vi
   .local-vote-search-controls{flex-direction:column;align-items:stretch}
   .local-vote-search-controls .button{width:100%;justify-content:center}
 }
+
+/* v9.2 · Troca rápida de município no mesmo painel */
+#inlineCityPicker[hidden]{display:none!important}
+.inline-city-picker{border:1px solid var(--line);background:var(--paper);border-radius:15px;padding:20px;margin:12px 0 20px;scroll-margin-top:90px}
+.inline-city-header{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:16px}
+.inline-city-header h3{font-size:clamp(19px,2.4vw,24px);margin:3px 0 5px;color:var(--ink)}
+.inline-city-header p{margin:0;color:var(--muted);font-size:14px;line-height:1.5}
+.inline-city-picker label{font-size:15px;font-weight:800;display:block;margin-bottom:7px}
+.inline-city-input-row{display:flex;gap:9px;align-items:center}
+.inline-city-input-row input{flex:1;min-width:0;height:52px;border:2px solid var(--line);border-radius:12px;background:var(--paper);color:var(--ink);font-size:17px;padding:10px 14px}
+.inline-city-input-row input:focus-visible{border-color:var(--blue);outline:3px solid var(--blue-soft);outline-offset:2px}
+.inline-city-feedback{font-size:14px;line-height:1.5;color:var(--muted);margin:12px 0 0}
+.inline-city-suggestions{display:grid;gap:6px;margin:12px 0 0;max-height:330px;overflow-y:auto;overscroll-behavior:contain}
+.inline-city-suggestions[hidden]{display:none!important}
+.inline-city-option{display:flex;justify-content:space-between;align-items:center;gap:8px;width:100%;min-height:56px;text-align:left;background:var(--soft);color:var(--ink);border:1px solid var(--line);border-radius:11px;padding:10px 14px;cursor:pointer}
+.inline-city-option small{color:var(--muted);font-size:13px}
+.inline-city-option:hover,.inline-city-option[aria-selected="true"]{background:var(--blue-soft);border-color:var(--blue)}
+.inline-city-option:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+#changeCityBtn{font-weight:800}
+@media(max-width:700px){.inline-city-picker{padding:14px}.inline-city-header{align-items:stretch;flex-direction:column;gap:10px}.inline-city-header #inlineCityClose{align-self:flex-end;min-height:44px}.inline-city-input-row{flex-direction:column;align-items:stretch}.inline-city-input-row button{min-height:48px}.inline-city-suggestions{max-height:300px}.inline-city-option{min-height:58px}}
+
+@media(max-width:700px){
+  #changeCityBtn{order:-2}
+  #changePlaceBtn{order:-1}
+  #allBrazilBtn{order:0;width:auto}
+  #refreshBtn{order:1}
+}

@@ -17,6 +17,7 @@ const el=(tag,className,text)=>{const node=document.createElement(tag);if(classN
 let round=1,office='presidente',uf='br',municipality='',cityName='',manualTurn=false,candidateFilter='',shownCandidateCount=8,onlyElected=false,pickerForcedOpen=false;
 let resultsSequence=0,mapSequence=0,statesData={},geoFeatures=null,mapRound=1,cityCache={},refreshTimer;
 let cityGeoFeatures=null,cityGeoUF='',cityVoteCache=new Map();
+let inlineCitySearchSequence=0,inlineCitySearchTimer=null,inlineCityRows=[],inlineCityCursor=-1;
 let explorerOpenedFrom=null,explorerLoadSequence=0,latestResult=null,viewZoom=1,mapViewBox=null,ignoreNextMapClick=false;
 let electionDayStarted=false,nationalSequence=0,latestNational=null,governorSequence=0,governorSituation=null;
 const readStore=(key,defaultValue)=>{try{return localStorage.getItem(key)||defaultValue;}catch{return defaultValue;}};
@@ -82,6 +83,7 @@ function updateHeadings(){populateOffices();
   const regionMark=$('#activeRegionFlag');if(regionMark)regionMark.replaceChildren(stateFlag(uf));
   $('#selectedPlaceHint').textContent=municipality?'Resultado municipal · dados do TSE':uf==='br'?'Busque sua cidade acima ou escolha um estado no mapa.':'Resultado estadual · clique no mapa para trocar.';
   $('#changePlaceBtn').textContent=uf==='br'?'Escolher estado':'Trocar estado';
+  $('#changeCityBtn').textContent=uf==='br'?'Buscar cidade':'Trocar cidade';
   $('#heroRound').textContent=round+'º turno';$('#heroTitle').textContent=round===1?'Resultados do 1º turno':electionDayStarted?'Apuração do 2º turno':'Prévia do 2º turno';
   $('#heroSubtitle').textContent=round===1?'4 de outubro · Dados oficiais do TSE':electionDayStarted?'25 de outubro · Acompanhamento oficial':'Disponível para testar · votação em 25/10';
   updateLocalVoteFinder();
@@ -89,13 +91,14 @@ function updateHeadings(){populateOffices();
   $('#cityCardDescription').textContent=municipality?`Mostramos os votos de ${OFFICES[office].toLowerCase()} em ${cityName||'seu município'}, ${STATE_NAMES[uf]}. Para trocar de cidade, basta usar a busca no topo.`:'Digite o nome da sua cidade no campo no início da página. Não precisa procurar códigos nem navegar por uma lista enorme.';
   $('#cityMapToggle').disabled=uf==='br';
   $('#clearCityBtn').hidden=uf==='br';
-  $('#clearSelectionBtn').hidden=uf==='br';
+  // O botao 'Voltar ao Brasil' ja limpa a selecao; nao duplicar a mesma acao na interface.
+  $('#clearSelectionBtn').hidden=true;
   $('#allBrazilBtn').textContent=uf==='br'?'✓ Brasil inteiro':'← Voltar ao Brasil';
   $('#allBrazilBtn').setAttribute('aria-label',uf==='br'?'Exibindo Brasil inteiro':'Limpar seleção e voltar aos resultados do Brasil');
   $('#roundUnlockHint').hidden=round!==2;
   renderAutoStatus();applyURL();
 }
-function changeRound(value,manual=true){if(![1,2].includes(value))return;round=value;if(manual)manualTurn=true;pickerForcedOpen=false;
+function changeRound(value,manual=true){if(![1,2].includes(value))return;round=value;if(manual)manualTurn=true;pickerForcedOpen=false;closeInlineCityPicker();
   // Nunca mostrar dados do turno anterior enquanto chegam novas respostas oficiais.
   statesData={};latestNational=null;renderScopeSummary();renderStateList();drawMap();renderInsights();
   updateHeadings();resetCandidateList();refreshResults();refreshMap();}
@@ -106,11 +109,11 @@ function changeOffice(value){if(!OFFICES[value])return;
     round=1;manualTurn=true;
     toast('Senadores e deputados foram votados no 1º turno. Abrimos essa votação.');
   }
-  office=value;pickerForcedOpen=false;
+  office=value;pickerForcedOpen=false;closeInlineCityPicker();
   updateHeadings();resetCandidateList();refreshResults();drawMap();renderScopeSummary();
 }
 
-function changeUF(code){if(!STATE_NAMES[code])return;pickerForcedOpen=false;if(code==='br'){resetToBrazil({focus:'results'});return;}uf=code;municipality='';cityName='';
+function changeUF(code){if(!STATE_NAMES[code])return;closeInlineCityPicker();pickerForcedOpen=false;if(code==='br'){resetToBrazil({focus:'results'});return;}uf=code;municipality='';cityName='';
   if(office==='deputado-distrital'&&uf!=='df')office='deputado-estadual';
   if(office==='deputado-estadual'&&uf==='df')office='deputado-distrital';
   $('#cityQuery').value='';renderCitySuggestions([]);showCityFeedback('Busque sua cidade pelo nome para ver os votos municipais.');
@@ -118,7 +121,7 @@ function changeUF(code){if(!STATE_NAMES[code])return;pickerForcedOpen=false;if(c
 // Reset único: mapa, cidade, botões, resultado e URL precisam concordar.
 function resetToBrazil({focus='map',scroll=false}={}){
   const hadSelection=uf!=='br'||Boolean(municipality);
-  ++citySearchRequest;clearTimeout(searchTimer);
+  ++citySearchRequest;clearTimeout(searchTimer);closeInlineCityPicker();
   // Fechar o explorador antes de atualizar o mapa; não devolver foco a um polígono removido.
   closeCityMap({restoreFocus:false});
   uf='br';municipality='';cityName='';office='presidente';pickerForcedOpen=false;
@@ -143,9 +146,91 @@ function photoForCandidate(candidate){
 function updateStatePicker(){
   const show=(office!=='presidente'&&uf==='br')||pickerForcedOpen;
   $('#officeStatePicker').hidden=!show;
+  $('#changePlaceBtn').setAttribute('aria-expanded',String(show));
   if(!show)return;
   $('#officeStateHeading').textContent=`Qual estado você quer consultar?`;
   renderOfficeStates();
+}
+// Troca rápida de cidade no painel de resultados, sem passar pelo filtro de estados.
+function closeInlineCityPicker({returnFocus=false}={}){
+  clearTimeout(inlineCitySearchTimer);++inlineCitySearchSequence;
+  $('#inlineCityPicker').hidden=true;
+  $('#inlineCitySearch').setAttribute('aria-expanded','false');
+  $('#changeCityBtn').setAttribute('aria-expanded','false');
+  $('#inlineCitySuggestions').replaceChildren();$('#inlineCitySuggestions').hidden=true;
+  inlineCityRows=[];inlineCityCursor=-1;
+  if(returnFocus)$('#changeCityBtn').focus({preventScroll:true});
+}
+function renderInlineCities(items){
+  const list=$('#inlineCitySuggestions');list.replaceChildren();inlineCityRows=items;inlineCityCursor=-1;
+  $('#inlineCitySearch').removeAttribute('aria-activedescendant');
+  items.forEach((item,i)=>{
+    const button=el('button','inline-city-option');button.type='button';button.id='inline-city-option-'+i;
+    button.setAttribute('role','option');button.setAttribute('aria-selected','false');
+    button.append(el('strong','',item.name),el('small','',STATE_NAMES[item.uf]||item.uf.toUpperCase()));
+    button.addEventListener('click',()=>chooseInlineCity(item));list.append(button);
+  });
+  list.hidden=items.length===0;$('#inlineCitySearch').setAttribute('aria-expanded',String(items.length>0));
+}
+function chooseInlineCity(item){
+  // Evita escolher uma cidade de outro estado se o usuario alterou UF durante a busca.
+  if(uf!=='br'&&item.uf!==uf)return;
+  closeInlineCityPicker();selectCity(item,{keepPosition:true});
+  $('#changeCityBtn').focus({preventScroll:true});
+  announceSelection(`${item.name}, ${STATE_NAMES[item.uf]}: resultados atualizados para o mesmo cargo.`);
+}
+async function searchInlineCities(now=false){
+  clearTimeout(inlineCitySearchTimer);const term=$('#inlineCitySearch').value.trim(),requestedUF=uf;
+  const request=++inlineCitySearchSequence;
+  if(term.length<2){renderInlineCities([]);$('#inlineCitySearchStatus').textContent='Digite pelo menos duas letras para buscar.';return;}
+  const search=async()=>{
+    $('#inlineCitySearchStatus').textContent='Procurando cidades...';
+    try{
+      const suffix=requestedUF==='br'?'':'&uf='+encodeURIComponent(requestedUF);
+      const data=await fetchJson('/api/cities/search?q='+encodeURIComponent(term)+suffix);
+      if(request!==inlineCitySearchSequence||$('#inlineCityPicker').hidden||requestedUF!==uf)return;
+      const candidates=(data.cities||[]).filter(city=>requestedUF==='br'||city.uf===requestedUF);
+      renderInlineCities(candidates);
+      $('#inlineCitySearchStatus').textContent=data.state==='partial'?(data.message||'Busca temporariamente limitada. Tente novamente.'):
+        candidates.length?`${candidates.length} cidade(s) encontrada(s). Selecione uma opção para ver os votos.`:'Nenhuma cidade encontrada. Confira a grafia e tente novamente.';
+    }catch{
+      if(request!==inlineCitySearchSequence)return;
+      renderInlineCities([]);$('#inlineCitySearchStatus').textContent='Não foi possível consultar cidades agora. Tente novamente.';
+    }
+  };
+  if(now)await search();else inlineCitySearchTimer=setTimeout(search,230);
+}
+function toggleInlineCityPicker(){
+  const open=$('#inlineCityPicker').hidden;
+  closeInlineCityPicker();
+  if(!open)return;
+  pickerForcedOpen=false;$('#officeStatePicker').hidden=true;$('#changePlaceBtn').setAttribute('aria-expanded','false');
+  $('#filterDisclosure').open=true;$('#inlineCityPicker').hidden=false;
+  $('#changeCityBtn').setAttribute('aria-expanded','true');
+  $('#inlineCityHeading').textContent=uf==='br'?'Qual cidade você quer consultar?':`Qual cidade de ${STATE_NAMES[uf]} você quer consultar?`;
+  $('#inlineCityTip').textContent=uf==='br'?'Busque por nome em todo o Brasil.':'Busque outra cidade de '+STATE_NAMES[uf]+'. Não precisa escolher o estado novamente.';
+  $('#inlineCitySearch').value='';$('#inlineCitySearch').placeholder=uf==='br'?'Ex.: São Paulo, Salvador ou Manaus':'Ex.: '+STATE_CAPITALS[uf];
+  $('#inlineCitySearchStatus').textContent='Digite duas letras para encontrar uma cidade.';
+  $('#inlineCitySearch').focus({preventScroll:true});
+}
+function setupInlineCityPicker(){
+  $('#changeCityBtn').addEventListener('click',toggleInlineCityPicker);
+  $('#inlineCityClose').addEventListener('click',()=>closeInlineCityPicker({returnFocus:true}));
+  $('#inlineCityFindBtn').addEventListener('click',()=>searchInlineCities(true));
+  $('#inlineCitySearch').addEventListener('input',()=>searchInlineCities());
+  $('#inlineCitySearch').addEventListener('keydown',e=>{
+    if(e.key==='Escape'){e.preventDefault();closeInlineCityPicker({returnFocus:true});return;}
+    if(['ArrowDown','ArrowUp'].includes(e.key)&&inlineCityRows.length){
+      e.preventDefault();inlineCityCursor=(inlineCityCursor+(e.key==='ArrowDown'?1:-1)+inlineCityRows.length)%inlineCityRows.length;
+      [...$('#inlineCitySuggestions').children].forEach((n,i)=>n.setAttribute('aria-selected',String(i===inlineCityCursor)));
+      $('#inlineCitySearch').setAttribute('aria-activedescendant','inline-city-option-'+inlineCityCursor);
+    } else if(e.key==='Enter'){
+      e.preventDefault();
+      if(inlineCityCursor>=0&&inlineCityRows[inlineCityCursor])chooseInlineCity(inlineCityRows[inlineCityCursor]);
+      else if(inlineCityRows.length===1)chooseInlineCity(inlineCityRows[0]);
+      else searchInlineCities(true);
+    }
+  });
 }
 function renderOfficeStates(){
   const q=normalizeName($('#officeStateSearch').value);
@@ -514,8 +599,8 @@ function showGovernorFromShortcut(){
   if(governorSituation?.state==='decided-first' && round!==1)changeRound(1);
   office='governador';updateHeadings();resetCandidateList();refreshResults();
   if(!$('#cityMapPanel').hidden)closeCityMap();
-  $('#resultados').scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
 }
+
 function selectState(code){
   if(code===uf){resetToBrazil({focus:'map',scroll:true});return;}
   explorerOpenedFrom=document.activeElement;changeUF(code);openCityMap();
@@ -543,7 +628,7 @@ async function queryCities(immediate=false, preferredUF="", autoOpenExact=false)
     }catch{if(seq!==citySearchRequest)return;renderCitySuggestions([]);showCityFeedback('Não foi possível consultar o catálogo do TSE. Tente novamente daqui a pouco.');}
   };if(immediate)await run();else searchTimer=setTimeout(run,220);
 }
-function selectCity(item,{fromExplorer=false}={}){const code=String(item.code||'').padStart(5,'0');if(!/^[0-9]{5}$/.test(code)||!STATE_NAMES[item.uf])return;
+function selectCity(item,{fromExplorer=false,keepPosition=false}={}){const code=String(item.code||'').padStart(5,'0');if(!/^[0-9]{5}$/.test(code)||!STATE_NAMES[item.uf])return;
   uf=item.uf;municipality=code;cityName=item.name;
   if(office==='deputado-estadual'&&uf==='df')office='deputado-distrital';
   if(office==='deputado-distrital'&&uf!=='df')office='deputado-estadual';
@@ -557,7 +642,7 @@ function selectCity(item,{fromExplorer=false}={}){const code=String(item.code||'
   refreshResults();drawMap();refreshGovernorSituation();
   if(fromExplorer)return;
   closeCityMap();
-  $('#resultados').scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
+  if(!keepPosition)$('#resultados').scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
 }
 function updateLastCity(){let saved=null;try{saved=JSON.parse(localStorage.getItem('urnaflash-last-city')||'null');}catch{}
   $('#lastCityBtn').hidden=!(saved&&/^[0-9]{5}$/.test(saved.code)&&STATE_NAMES[saved.uf]);
@@ -727,12 +812,14 @@ function init(){setTheme(readStore('urnaflash-theme','light'));$('#themeToggle')
   document.querySelectorAll('#turnButtons [data-round]').forEach(btn=>btn.addEventListener('click',()=>changeRound(Number(btn.dataset.round))));
   document.querySelectorAll('#officeButtons [data-office]').forEach(btn=>btn.addEventListener('click',()=>changeOffice(btn.dataset.office)));
   $('#changePlaceBtn').addEventListener('click',()=>{
+    closeInlineCityPicker();
     $('#filterDisclosure').open=true;
     pickerForcedOpen=!pickerForcedOpen;
     updateStatePicker();
     if(pickerForcedOpen){$('#officeStatePicker').scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'nearest'});$('#officeStateSearch').focus({preventScroll:true});}
     else $('#changePlaceBtn').focus();
   });
+  setupInlineCityPicker();
   $('#stateRaceButton').addEventListener('click',showGovernorFromShortcut);
   $('#stateRaceSummaryButton').addEventListener('click',showGovernorFromShortcut);
   $('#allBrazilBtn').addEventListener('click',()=>resetToBrazil({focus:'results',scroll:true}));

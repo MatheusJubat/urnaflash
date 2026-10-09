@@ -1,8 +1,16 @@
-# UrnaFlash 9.1 — resultados claros por cargo e por cidade
+# UrnaFlash 9.2 — troca rápida de cidades no mesmo estado
 
 Site independente com consulta de resultados do TSE, mapas do IBGE, primeiro/segundo turno e navegação acessível.
 
-## Melhorias desta versão
+## Novidade v9.2
+
+- **Trocar cidade**, no painel de resultados: mantém a UF atual, o turno e o cargo. Digite duas letras, escolha uma sugestão e os números municipais atualizam no mesmo lugar.
+- **Trocar estado**, separadamente: abre a seleção de UF sem confundir com a pesquisa municipal.
+- **Menos controles repetidos:** um único botão Voltar ao Brasil substitui as ações redundantes de limpar seleção; no celular, Trocar cidade e Trocar estado ficam lado a lado.
+- **Navegação acessível**: busca por teclado (setas, Enter e Esc), botões grandes, mensagens de erro e resultados anunciados a leitores de tela. A troca rápida não força um salto ao topo.
+- **Brasil inteiro**: na visão nacional, Trocar cidade pesquisa em todos os estados; ao consultar uma cidade, as próximas trocas ficam limitadas à UF correspondente.
+
+## Melhorias anteriores
 
 - **Cargo sem complicação:** abaixo do placar, os cargos aparecem em botões grandes e sempre visíveis. No celular são exibidos em duas colunas, sem depender de gestos ocultos de arrastar.
 - **Local preservado:** ao consultar Carambeí, por exemplo, alternar entre Presidente, Governador, Senador e Deputados mantém o município selecionado. Quando o cargo exige uma UF e o Brasil estiver selecionado, aparece uma escolha estadual contextual.
@@ -15,13 +23,13 @@ Site independente com consulta de resultados do TSE, mapas do IBGE, primeiro/seg
 ## Publicar uma atualização
 
 1. Extraia o ZIP.
-2. Envie **o conteúdo interno** da pasta `UrnaFlash-v9-1` à raiz do repositório `urnaflash` no GitHub, substituindo os arquivos já existentes.
+2. Envie **o conteúdo interno** da pasta `UrnaFlash-v9-2` à raiz do repositório `urnaflash` no GitHub, substituindo os arquivos já existentes.
 3. Faça commit na branch `main`; o Render usará o mesmo Web Service, sem criar uma segunda hospedagem.
 4. Confira o deploy, o endpoint `/api/health` e teste as seguintes combinações: Brasil / Presidente; Carambeí (PR) / Deputado Federal / pesquisar nome; DF / Deputado Distrital; outro estado / Deputado Estadual; segundo turno e retorno aos cargos do primeiro.
 
 Build: `npm install --ignore-scripts`. Start: `npm start`. Testes: `npm test`.
 
-Sugestão de commit: `feat: simplifica filtros e destaca votos dos candidatos por municipio`
+Sugestão de commit: `feat: permite trocar cidades diretamente sem refazer escolha de estado`
 
 ## Cuidado com os resultados
 

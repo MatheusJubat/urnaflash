@@ -5,7 +5,7 @@ import {runInNewContext} from 'node:vm';
 const source=readFileSync(new URL('../public/app.js',import.meta.url),'utf8');
 const take=(start,end)=>{const a=source.indexOf(start),b=source.indexOf(end,a+start.length);assert.ok(a!==-1&&b>a,`${start} found`);return source.slice(a,b);};
 const reloadSource=take('function navigationIsReload(){','function announceSelection(');
-const resetSource=take('function resetToBrazil(', 'function candidateElement(');
+const resetSource=take('function resetToBrazil(', 'function photoForCandidate(');
 const selectSource=take('function selectState(', '// A busca geral');
 
 test('identifica uma atualização F5 e distingue de link aberto diretamente',()=>{
@@ -28,7 +28,7 @@ function resetFixture({selected='pr',city='12345',position='Palmeira',chosenOffi
   const context={
     $,
     clearTimeout(){},
-    closeCityMap(opts){calls.push(['close',opts]);},
+    closeCityMap(opts){calls.push(['close',opts]);},closeInlineCityPicker(){calls.push('closeInlineCityPicker')},
     renderCitySuggestions(){calls.push('suggestions')},showCityFeedback(){calls.push('feedback')},
     updateHeadings(){calls.push('headings')},resetCandidateList(){calls.push('resetCandidates')},
     refreshResults(){calls.push('results')},refreshGovernorSituation(){calls.push('governor')},

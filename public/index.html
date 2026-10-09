@@ -73,11 +73,18 @@
         </section>
         <details id="filterDisclosure" class="filter-disclosure"><summary><span>⌖ Alterar estado ou cidade</span><span aria-hidden="true">⌄</span></summary>
         <div class="friendly-filters" aria-label="Alterar o local da consulta">
-          <div class="selected-area"><span id="activeRegionFlag" class="selected-region-icon" aria-hidden="true">🇧🇷</span><div><span>Local consultado</span><strong id="selectedPlace">Brasil inteiro</strong><small id="selectedPlaceHint">Clique no mapa para consultar um estado ou busque sua cidade acima.</small></div>
-            <div class="selected-actions"><button type="button" id="changePlaceBtn" class="button secondary">Buscar outra cidade</button><button type="button" id="clearSelectionBtn" class="button secondary" hidden>✕ Limpar seleção</button><button type="button" id="allBrazilBtn" class="button secondary">Ver Brasil</button><button type="button" id="refreshBtn" class="button secondary">↻ Atualizar</button></div>
+          <div class="selected-area"><span id="activeRegionFlag" class="selected-region-icon" aria-hidden="true">🇧🇷</span><div><span>Local consultado</span><strong id="selectedPlace" tabindex="-1">Brasil inteiro</strong><small id="selectedPlaceHint">Clique no mapa para consultar um estado ou busque sua cidade acima.</small></div>
+            <div class="selected-actions"><button type="button" id="changeCityBtn" class="button primary" aria-controls="inlineCityPicker" aria-expanded="false">Trocar cidade</button><button type="button" id="changePlaceBtn" class="button secondary" aria-controls="officeStatePicker" aria-expanded="false">Trocar estado</button><button type="button" id="clearSelectionBtn" class="button secondary" hidden>✕ Limpar seleção</button><button type="button" id="allBrazilBtn" class="button secondary">Ver Brasil</button><button type="button" id="refreshBtn" class="button secondary">↻ Atualizar</button></div>
           </div>
         </div>
         </details>
+        <section id="inlineCityPicker" class="inline-city-picker" aria-labelledby="inlineCityHeading" hidden>
+          <div class="inline-city-header"><div><span class="eyebrow">BUSCAR CIDADE</span><h3 id="inlineCityHeading">Qual cidade você quer consultar?</h3><p id="inlineCityTip">Digite o nome da cidade. A escolha mantém o cargo e o turno atuais.</p></div><button type="button" id="inlineCityClose" class="button secondary" aria-label="Fechar busca de cidade">Fechar ✕</button></div>
+          <label for="inlineCitySearch">Nome da cidade</label>
+          <div class="inline-city-input-row"><input id="inlineCitySearch" type="search" role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-controls="inlineCitySuggestions" aria-expanded="false" aria-describedby="inlineCitySearchStatus" autocomplete="off" placeholder="Digite o nome da cidade"><button type="button" id="inlineCityFindBtn" class="button primary">Buscar</button></div>
+          <div id="inlineCitySuggestions" class="inline-city-suggestions" role="listbox" aria-label="Cidades encontradas" hidden></div>
+          <p id="inlineCitySearchStatus" class="inline-city-feedback" role="status" aria-live="polite">Digite duas letras para encontrar sua cidade.</p>
+        </section>
         <section id="officeStatePicker" class="office-state-picker" aria-label="Selecionar estado para consultar resultados" hidden>
           <div class="office-state-picker-header"><h3 id="officeStateHeading">Em qual estado você quer consultar?</h3><p>Toque na bandeira do estado desejado. A escolha atualiza os votos aqui mesmo, sem voltar ao começo da página.</p></div>
           <label for="officeStateSearch">Buscar estado</label><input type="search" id="officeStateSearch" placeholder="Ex.: Paraná, São Paulo..." autocomplete="off">
